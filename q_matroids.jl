@@ -29,6 +29,7 @@ end
 
     Construct a `q-matroid` from the independentspaces. 
 
+    All matrices in that list need to be in RREF.
 """
 function q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{fpMatrix})
     ms = matrix_space(field,1,ncols(Indeps[1]))

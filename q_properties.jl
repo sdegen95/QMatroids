@@ -69,7 +69,7 @@ end
 @doc raw"""
     Q_Matroid_Loopspace(QM::Q_Matroid)
 
-    This returns the Loopspace a the q-matroid.
+    This returns the Loopspace of the q-matroid.
 """
 function Q_Matroid_Loopspace(QM::Q_Matroid)
     Field = QM.field
@@ -92,3 +92,113 @@ end
 ################################################################################
 
 
+@doc raw"""
+    Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+
+    This returns the rank of a specific space in a given q-matroid.
+    
+    We require for this function, the Independent-and Dependent-Spaces, because it's computational faster.
+"""
+function Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+    Field = QM.field
+
+    # Convert a space not in rref in rref space
+    r,New_space = rref(Space)
+
+    New_space_set = subspace_set(Field,New_space)
+    indep_spaces_in_New_Space = []
+
+    if New_space in Indeps
+        return subspace_dim(Field,New_space)
+
+    elseif New_space in Deps
+        for indep_space in Indeps
+            if issubset(subspace_set(Field,indep_space),New_space_set)
+                push!(indep_spaces_in_New_Space,indep_space)
+            end
+        end
+
+        if nrows(New_space) == 1
+            return 0
+        else
+            if length(indep_spaces_in_New_Space) == 1
+                return 0
+            else
+                return maximum(nrows,indep_spaces_in_New_Space)
+            end
+        end
+    end
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_Circuits(QM::Q_Matroid)
+
+    This returns the circuits of the q-matroid.
+"""
+function Q_Matroid_Circuits(QM::Q_Matroid)
+    Field = QM.field
+    Indeps = Q_Matroid_Indepentspaces(QM)
+    Deps = Q_Matroid_Depentspaces(QM)
+    q_mat_circuits = AbstractVector{fpMatrix}([])
+    not_correct_spaces = []
+
+    for dep_space in Deps
+        loop_breaker = true
+        arrays_subs = subspaces_fix_space(Field,dep_space)
+        deleteat!(arrays_subs,subspace_dim(Field,dep_space)+1)
+        for array in arrays_subs
+            if loop_breaker == false
+                break
+            else
+                for space in array
+                    if space in Indeps
+                        continue
+                    else
+                        loop_breaker = false
+                        push!(not_correct_spaces,dep_space)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    for dep_space in Deps
+        if !(dep_space in not_correct_spaces)
+            push!(q_mat_circuits,dep_space)
+        end
+    end
+
+    return unique(q_mat_circuits)
+end
+################################################################################
+
+
+@doc raw"""
+    Is_paving_q_matroid(QM::Q_Matroid)
+
+    This returns the circuits of the q-matroid.
+"""
+function Is_paving_q_matroid(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    right_ones = []
+    q_rank = subspace_dim(Field, Bases[1])
+    Circuits = Q_Matroid_Circuits(QM)
+
+    for circ in Circuits
+        if  subspace_dim(Field,circ) >= q_rank
+            push!(right_ones,circ)
+        end
+    end
+
+    if right_ones == Circuits
+        return true
+    else
+        return false
+    end
+    
+end
+################################################################################
