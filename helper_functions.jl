@@ -47,9 +47,10 @@ function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.
     # Create one dim subspaces
     for i in range(1,char^(n)-1)
         array = [digits(i,base=char,pad=n)]
-        vec = matrix(field,array)
+        vec = rref(matrix(field,array))[2]
         push!(one_dims,vec)
     end
+    one_dims = unique(one_dims)
 
     # Create all higher dimensional spaces
     if k == 0
@@ -194,9 +195,11 @@ function subspaces_fix_space(field::Nemo.fpField, space::fpMatrix)
     S = subspace_set(field,space)
     for x in S
         if x != zero_vec
-            push!(one_spaces,x)
+            new_x = rref(x)[2]
+            push!(one_spaces,new_x)
         end
     end
+    one_spaces = unique(one_spaces)
 
     if dim == 0
         push!(collection_subspaces,zero_spaces)

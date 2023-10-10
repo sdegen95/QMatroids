@@ -11,6 +11,12 @@ using Random
 using InvertedIndices
 
 
+@doc raw"""
+    Construct a `q-matroid` with bases and field attribute.
+
+    All matrices in the bases-list need to be in RREF.
+"""
+
 struct Q_Matroid
     field::Nemo.fpField           # field of the groudspace
     bases::AbstractVector{fpMatrix} # bases of the q-matroid
@@ -32,11 +38,9 @@ end
     All matrices in that list need to be in RREF.
 """
 function q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{fpMatrix})
-    ms = matrix_space(field,1,ncols(Indeps[1]))
-    zero_vec = ms(0)
-    sort!(Indeps, by = x -> nrows(x))
-    Sorted_indeps = Indeps[findall(y->nrows(y)==maximum(nrows,Indeps),Indeps)]
-    bases = [x for x in Sorted_indeps if x!=zero_vec]
+    sort!(Indeps, by = x -> subspace_dim(field,x))
+    Sorted_indeps = Indeps[findall(y->subspace_dim(field,y)==maximum(z->subspace_dim(field,z),Indeps),Indeps)]
+    bases = [x for x in Sorted_indeps]
 
     return Q_Matroid(field,bases)
     
