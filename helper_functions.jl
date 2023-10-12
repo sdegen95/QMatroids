@@ -265,3 +265,138 @@ function containments_fix_space(field::Nemo.fpField, space::fpMatrix)
     return spaces_containing_space
 end
 ################################################################################
+
+
+@doc raw"""
+    matrix_collec(field::fqPolyRepField, rows::Oscar.IntegerUnion, cols::Oscar.IntegerUnion, choice=nothing::Union{Int,Nothing})
+
+    Returns all possible non-singular matrices (identity matrix in front), with entries of the given field.
+
+    If you put in an number for the choice, then the function will choose `choice`-many random elements for the field and return all possible matrices with those elements as entries.
+"""
+function  matrix_collec(field::fqPolyRepField, rows::Oscar.IntegerUnion, cols::Oscar.IntegerUnion, choice=nothing::Union{Int,Nothing})
+    char = characteristic(field)
+    gen = Oscar.gen(field)
+    deg = Oscar.degree(field)
+    MS = matrix_space(field,rows,cols)
+    elements = []
+
+    if rows==cols
+        return AbstractVector{fqPolyRepMatrix}([MS(1)])
+    else
+        # Create the elements of the extension field
+        if rows == 1
+            for i in range(1,cols-rows)
+                push!(elements,field(0))
+                for j in range(0,char^deg-2)
+                    push!(elements,gen^j)
+                end
+            end
+        else
+            for i in range(1,rows)
+                push!(elements,field(0))
+                for j in range(0,char^deg-2)
+                    push!(elements,gen^j)
+                end
+            end
+        end
+
+        if  isnothing(choice)
+            # Create all possible cols
+            one_cols_collec = []
+            helper_list = []
+            for combi in combinations(elements,rows)
+                push!(helper_list,combi)
+            end
+            helper_list = unique(helper_list)
+
+            for i in range(1,cols-rows)
+                for elm in helper_list 
+                    mat = transpose(matrix(field,1,rows,elm))
+                    push!(one_cols_collec,mat)
+                end
+            end
+            
+            # Create all possible >= 1 row matrices with id-mat in front
+            multi_row_matrix_collec = AbstractVector{fqPolyRepMatrix}([])
+            for k in combinations(one_cols_collec,cols-rows)
+                A = MS(1)
+                for s in range(1,cols-rows)
+                    A[:,rows+s]=k[s]
+                end
+                push!(multi_row_matrix_collec,A)
+            end
+            multi_row_matrix_collec = unique(multi_row_matrix_collec)
+
+            return multi_row_matrix_collec
+        else
+            elements = Random.shuffle(elements)
+            
+            # Create all possible cols
+            one_cols_collec = []
+            helper_list = []
+            for combi in combinations(elements[1:choice],rows)
+                push!(helper_list,combi)
+            end
+            helper_list = unique(helper_list)
+
+            for i in range(1,cols-rows)
+                for elm in helper_list 
+                    mat = transpose(matrix(field,1,rows,elm))
+                    push!(one_cols_collec,mat)
+                end
+            end
+            
+            # Create all possible >= 1 row matrices with id-mat in front 
+            multi_row_matrix_collec = AbstractVector{fqPolyRepMatrix}([])
+            for k in combinations(one_cols_collec,cols-rows)
+                A = MS(1)
+                for s in range(1,cols-rows)
+                    A[:,rows+s]=k[s]
+                end
+                push!(multi_row_matrix_collec,A)
+            end
+            multi_row_matrix_collec = unique(multi_row_matrix_collec)
+
+            return multi_row_matrix_collec
+            
+        end
+    end
+end
+################################################################################
+
+
+@doc raw"""
+    codim_one_subs(field::Nemo.fpField, space::fpMatrix)
+
+    Return all codim. one subspaces of a fix `space`. For the zero space, it will return an empty list.
+"""
+function codim_one_subs(field::Nemo.fpField, space::fpMatrix)
+    collection_of_subs = subspaces_fix_space(field,space)
+    dim = subspace_dim(field,space)
+
+    if dim != 0
+        return collection_of_subs[dim]
+    else
+        return AbstractVector{fpMatrix}([])
+    end
+end
+################################################################################
+
+
+@doc raw"""
+    dim_one_subs(field::Nemo.fpField, space::fpMatrix)
+
+    Return all dim. one subspaces of a fix `space`. For the zero space, it will return an empty list and for one-space it will return the space itself.
+"""
+function  dim_one_subs(field::Nemo.fpField, space::fpMatrix)
+    collection_of_subs = subspaces_fix_space(field,space)
+    dim = subspace_dim(field,space)
+
+    if dim == 0
+        return AbstractVector{fpMatrix}([])
+    else
+        return collection_of_subs[2]
+    end
+end
+################################################################################

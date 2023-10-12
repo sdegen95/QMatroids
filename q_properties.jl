@@ -293,3 +293,146 @@ function Are_isom_q_matroids(QM1::Q_Matroid, QM2::Q_Matroid)
     return Graphs.Experimental.has_isomorph(lat_1,lat_2)
 end
 ################################################################################
+
+
+@doc raw"""
+    isom_classes_from_mats(List_matrices::AbstractVector{fqPolyRepMatrix})
+
+    Return a list of all the different isom.-classes of q-matroids coming from the matrices in the initial input-list.
+    
+    Note that these are only different isom.-classes of representable q-matroids.
+
+    The list is given in the follwing way: (matrix rep.the class, q-mat of the matrix, length of it's bases, num of elm in the isom.-class) 
+"""
+function Isom_classes_from_mats(field::fqPolyRepField, list_matrices::AbstractVector{fqPolyRepMatrix})
+    unique_index = 1
+    matrices_dict = OrderedDict([])
+    key_value_list = []
+    list_diff_q_mat = []    
+
+    # Create dict
+    for (id,matrix) in enumerate(list_matrices)
+        QM = q_matroid_from_matrix(field,matrix)
+        indeps = Q_Matroid_Indepentspaces(QM)
+        deps = Q_Matroid_Depentspaces(QM)
+        graph = Q_Matroid_lattice(QM,indeps,deps,"no")
+        merge!(matrices_dict,Dict(id=>[matrix,QM,indeps,deps,graph]))
+    end
+
+    # Fill key_value_list
+    for (key,tuple) in matrices_dict
+        push!(key_value_list,(key,tuple[1]))
+    end
+
+    # Start values
+    start_mat = matrices_dict[unique_index][1]
+    start_qm = matrices_dict[unique_index][2]
+    start_indeps = matrices_dict[unique_index][3]
+    start_deps = matrices_dict[unique_index][4]
+    start_l = matrices_dict[unique_index][5]
+
+    #list_of_bases = []
+    list_non_isom_q_mats = []
+    list_isom_q_mats = []
+
+    while length(key_value_list) > 0
+        for elm in key_value_list
+            if elm[2] != start_mat
+                if Graphs.Experimental.has_isomorph(start_l,matrices_dict[elm[1]][5])
+                    push!(list_isom_q_mats,(elm[1],elm[2]))
+                else
+                    push!(list_non_isom_q_mats,(elm[1],elm[2]))
+                end
+            end
+        end
+        push!(list_diff_q_mat,(start_mat,start_qm,length(start_qm.bases),length(list_isom_q_mats)))
+
+        # Reassignements
+        if list_non_isom_q_mats == []
+            key_value_list = list_non_isom_q_mats
+        else
+            key_value_list = list_non_isom_q_mats
+            start_mat = matrices_dict[key_value_list[unique_index][1]][1]
+            start_qm = matrices_dict[key_value_list[unique_index][1]][2]
+            start_indeps = matrices_dict[key_value_list[unique_index][1]][3]
+            start_deps = matrices_dict[key_value_list[unique_index][1]][4]
+            start_l = matrices_dict[key_value_list[unique_index][1]][5]
+
+            list_non_isom_q_mats = []
+            list_isom_q_mats = []
+        end
+    end
+
+    return list_diff_q_mat
+    
+end
+################################################################################
+
+
+@doc raw"""
+    isom_classes_from_bases(List_bases::AbstractVector{fpMatrix})
+
+    Return a list of all the different isom.-classes of q-matroids coming from approved base-tuples in the initial input-list.
+
+    The list is given in the follwing way: (matrix rep.the class, q-mat of the matrix, length of it's bases, num of elm in the isom.-class) 
+"""
+function Isom_classes_from_bases(field::Nemo.fpField, List_bases::AbstractVector{AbstractVector{fpMatrix}})
+    unique_index = 1
+    Bases_dict = OrderedDict([])
+    key_value_list = []
+    list_diff_q_mat = []    
+
+    # Create dict
+    for (id,elm) in enumerate(List_bases)
+        QM = Q_Matroid(field,elm)
+        indeps = Q_Matroid_Indepentspaces(QM)
+        deps = Q_Matroid_Depentspaces(QM)
+        graph = Q_Matroid_lattice(QM,indeps,deps,"no")
+        merge!(Bases_dict,Dict(id=>[QM,indeps,deps,graph]))
+    end
+
+    # Fill key_value_list
+    for (key,tuple) in Bases_dict
+        push!(key_value_list,(key,tuple[1].bases))
+    end
+
+    # Start values
+    start_qm = Bases_dict[unique_index][1]
+    start_indeps = Bases_dict[unique_index][2]
+    start_deps = Bases_dict[unique_index][3]
+    start_l = Bases_dict[unique_index][4]
+
+    #list_of_bases = []
+    list_non_isom_q_mats = []
+    list_isom_q_mats = []
+
+    while length(key_value_list) > 0
+        for elm in key_value_list
+            if elm[2] != start_qm.bases
+                if Graphs.Experimental.has_isomorph(start_l,Bases_dict[elm[1]][4])
+                    push!(list_isom_q_mats,(elm[1],elm[2]))
+                else
+                    push!(list_non_isom_q_mats,(elm[1],elm[2]))
+                end
+            end
+        end
+        push!(list_diff_q_mat,(start_qm,length(start_qm.bases),length(list_isom_q_mats)))
+
+        # Reassignements
+        if list_non_isom_q_mats == []
+            key_value_list = list_non_isom_q_mats
+        else
+            key_value_list = list_non_isom_q_mats
+            start_qm = Bases_dict[key_value_list[unique_index][1]][1]
+            start_indeps = Bases_dict[key_value_list[unique_index][1]][2]
+            start_deps = Bases_dict[key_value_list[unique_index][1]][3]
+            start_l = Bases_dict[key_value_list[unique_index][1]][4]
+
+            list_non_isom_q_mats = []
+            list_isom_q_mats = []
+        end
+    end
+
+    return list_diff_q_mat
+end
+################################################################################
