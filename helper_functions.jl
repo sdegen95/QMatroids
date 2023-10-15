@@ -369,7 +369,7 @@ end
 @doc raw"""
     codim_one_subs(field::Nemo.fpField, space::fpMatrix)
 
-    Return all codim. one subspaces of a fix `space`. For the zero space, it will return an empty list.
+    Returns all codim. one subspaces of a fix `space`. For the zero space, it will return an empty list.
 """
 function codim_one_subs(field::Nemo.fpField, space::fpMatrix)
     collection_of_subs = subspaces_fix_space(field,space)
@@ -387,7 +387,7 @@ end
 @doc raw"""
     dim_one_subs(field::Nemo.fpField, space::fpMatrix)
 
-    Return all dim. one subspaces of a fix `space`. For the zero space, it will return an empty list and for one-space it will return the space itself.
+    Returns all dim. one subspaces of a fix `space`. For the zero space, it will return an empty list and for one-space it will return the space itself.
 """
 function  dim_one_subs(field::Nemo.fpField, space::fpMatrix)
     collection_of_subs = subspaces_fix_space(field,space)
@@ -397,6 +397,30 @@ function  dim_one_subs(field::Nemo.fpField, space::fpMatrix)
         return AbstractVector{fpMatrix}([])
     else
         return collection_of_subs[2]
+    end
+end
+################################################################################
+
+
+@doc raw"""
+    Möbius_func_subspace_lat(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+
+    Returns the value of the Möbius-function, of the subspaces lattice, of the two fixed subspaces `space_1` and `space_2`.
+"""
+function Möbius_func_subspace_lat(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+
+    char = Int(characteristic(field))
+
+    dim_sub_1 = subspace_dim(field,space_1)
+    dim_sub_2 = subspace_dim(field,space_2)
+
+    diff = dim_sub_2-dim_sub_1
+    sub_contained_in = containments_fix_space(field,space_1)
+
+    if space_2 in sub_contained_in
+        return (-1)^(diff)*char^(binomial(diff,2))
+    else
+        return 0
     end
 end
 ################################################################################

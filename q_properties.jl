@@ -203,6 +203,50 @@ end
 
 
 @doc raw"""
+    Q_Matroid_Flats(QM::Q_Matroid)
+
+    This returns the flats of the q-matroid.
+"""
+function Q_Matroid_Flats(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    indeps = Q_Matroid_Indepentspaces(QM)
+    deps =  Q_Matroid_Depentspaces(QM)
+
+    n = ncols(Bases[1])
+    one_spaces = subspaces_fix_dim(Field,1,n)
+    all_spaces = all_subspaces(Field,n)
+    not_correct_spaces = []
+    q_matroid_flats = AbstractVector{fpMatrix}([])
+
+    for space in all_spaces
+        one_subs = dim_one_subs(Field,space)
+        for one_space in one_spaces
+            if !(one_space in one_subs)
+                sum = sum_vs(Field,space,one_space)
+                if  Q_Matroid_Ranks(QM,sum,indeps,deps) > Q_Matroid_Ranks(QM,space,indeps,deps)
+                    continue
+                else
+                    push!(not_correct_spaces,space)
+                    break
+                end
+            end
+        end
+    end
+
+    for space in all_spaces
+        if !(space in not_correct_spaces)
+            push!(q_matroid_flats,space)
+        end
+    end
+
+    return q_matroid_flats
+end
+
+################################################################################
+
+
+@doc raw"""
     Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix}, show::String)
 
     This returns the lattice of the q-matroid as graph, where we only draw edges that increase the rank.
@@ -298,7 +342,7 @@ end
 @doc raw"""
     isom_classes_from_mats(List_matrices::AbstractVector{fqPolyRepMatrix})
 
-    Return a list of all the different isom.-classes of q-matroids coming from the matrices in the initial input-list.
+    Returns a list of all the different isom.-classes of q-matroids coming from the matrices in the initial input-list.
     
     Note that these are only different isom.-classes of representable q-matroids.
 
@@ -372,7 +416,7 @@ end
 @doc raw"""
     isom_classes_from_bases(List_bases::AbstractVector{fpMatrix})
 
-    Return a list of all the different isom.-classes of q-matroids coming from approved base-tuples in the initial input-list.
+    Returns a list of all the different isom.-classes of q-matroids coming from approved base-tuples in the initial input-list.
 
     The list is given in the follwing way: (matrix rep.the class, q-mat of the matrix, length of it's bases, num of elm in the isom.-class) 
 """
@@ -434,5 +478,43 @@ function Isom_classes_from_bases(field::Nemo.fpField, List_bases::AbstractVector
     end
 
     return list_diff_q_mat
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_charpoly(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+
+    Returns the characteristic-polynimial of the q-matroid.
+
+    We require for this function, the Independent-and Dependent-Spaces, because it's computational faster.
+"""
+function Q_Matroid_charpoly(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+    Bases = QM.bases
+    Field = QM.field
+    dim = ncols(Bases[1])
+
+    # Create polynomial ring over Z
+    R,z = polynomial_ring(ZZ,"z")
+
+    # create all subspaces
+    all_spaces = sort(all_subspaces(Field,dim), by = x->subspace_dim(Field,x))
+
+    # Compute rank of q-matroid
+    #max_space = all_spaces[findall(x-> nrows(x)==dim,all_spaces)][1]
+    q_mat_rank = subspace_dim(Field,Bases[1])
+
+    # Search for zero_vec
+    zero_vec = all_spaces[1]
+
+    # Create the char-polyn for the given q-matroid
+    char_polyn = R(0)
+    
+    for space in all_spaces
+        diff = q_mat_rank-Q_Matroid_Ranks(QM,space,Indeps,Deps)
+        char_polyn += Möbius_func_subspace_lat(Field,zero_vec,space)*z^(diff)
+    end
+     
+    return char_polyn
 end
 ################################################################################
