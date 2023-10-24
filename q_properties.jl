@@ -518,3 +518,233 @@ function Q_Matroid_charpoly(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Dep
     return char_polyn
 end
 ################################################################################
+
+
+@doc raw"""
+    Projectivization_matroid(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+
+    Returns the projectivization matroid of the given q-matroid.
+"""
+function Projectivization_matroid(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    dim = ncols(Bases[1])
+    q_rank = subspace_dim(Field,Bases[1])
+    one_spaces = subspaces_fix_dim(Field,1,dim)
+    groundset_dictionary = OrderedDict([])
+    groundset = []
+
+    # Assign each 1-space a number
+    for (id,elm) in enumerate(one_spaces)
+        merge!(groundset_dictionary,Dict(Int(id)=>elm))
+        push!(groundset,Int(id))
+    end
+
+    # Creating the bases of the projectivization matroid
+    proj_mat_bases_helper_list = []
+    for basis in Bases
+        one_subs = dim_one_subs(Field,basis)
+        id_sub_pair_list = []
+        for (id,value) in groundset_dictionary
+            for space in one_subs
+                if space == value
+                    push!(id_sub_pair_list,(id,value))
+                end
+            end
+        end
+
+        for combi in combinations(id_sub_pair_list,q_rank)
+            new_combi = [x[2] for x in combi]
+            mat = vcat(new_combi)
+            if rank(mat) == q_rank
+                push!(proj_mat_bases_helper_list,combi)
+            else
+                continue
+            end
+        end
+    end
+    proj_mat_bases_helper_list = unique(proj_mat_bases_helper_list)
+
+    # Translate everything
+    proj_mat_bases = AbstractVector{AbstractVector{Any}}([])
+    for combi in proj_mat_bases_helper_list
+        sub_list = []
+        for pair in combi
+            push!(sub_list,pair[1])
+        end
+        push!(proj_mat_bases,sub_list)
+    end
+
+
+    # Instantiate the matroid
+    proj_mat = matroid_from_bases(proj_mat_bases,length(groundset))
+
+    return proj_mat
+    
+end
+################################################################################
+
+
+@doc raw"""
+    Simplyfy_rep_mat(QM::Q_Matroid)
+
+    Given a list of spaces as matrices in RREF, the function searchs for the "id"-matrix which has the most left pivot elements.
+"""
+function Simplyfy_rep_mat(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    char = Int(characteristic(Field))
+    Ext_F = FiniteField(char,1,"a")[1]
+    dim = ncols(Bases[1])
+    q_rank = subspace_dim(Field,Bases[1])
+
+    if q_rank != 0
+        num_vars = dim*q_rank+1
+
+        # Create polynomial ring
+        R,x = polynomial_ring(Ext_F,num_vars)
+        MS = matrix_space(R,q_rank,dim)
+        
+        # Create matrix with all zeros 
+        G = MS(0)
+        pivot_indices = []
+
+        # Search bases for matrices with only num. ones = q_rank
+        for basis in Bases
+            indices = findall(y->y==1,Array(basis))
+            if length(indices) == q_rank
+                push!(pivot_indices,indices)
+            end
+        end
+
+        sort!(pivot_indices)
+
+        # Fill the entries that are already know
+        if pivot_indices == []
+            return "You input a non q-matroid"
+        else
+            for cart_index in pivot_indices[1]
+                G[cart_index] = R(1)
+            end
+            
+            count = 1
+            for pair in combinations(pivot_indices[1],2)
+                if Int(pair[1][1]) + 1 == Int(pair[2][1]) 
+                    if abs(pair[2][2]-pair[1][2]) >= 2
+                        for k in range(2, abs(pair[2][2]-pair[1][2]))
+                            G[pair[1][1],pair[1][2]+k-1] = R(x[count])
+                            if pair[1][1] != 1
+                                for d in range(1,pair[1][1])
+                                    G[d,pair[1][2]+k-1] = R(x[count])
+                                    count += 1
+                                end
+                            end
+                            count += 1
+                        end
+                    end
+                end
+            end
+
+            max_col = pivot_indices[1][length(pivot_indices[1])][2]
+            if max_col != dim
+                for k in range(max_col+1,dim)
+                    for l in range(1,q_rank)
+                        G[l,k] = R(x[count])
+                        count += 1
+                    end
+                end
+            end
+
+            return G, R, x[num_vars]
+        end
+    else
+        matrix_space(Ext_F,1,dim)
+        return MS(0)
+    end
+    
+end
+
+
+@doc raw"""
+    Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix}, G::AbstractAlgebra.Generic.MatSpaceElem{fqPolyRepMPolyRingElem}, R::fqPolyRepMPolyRing ,last_var::fqPolyRepMPolyRingElem)
+
+    This function already returns if a given q-matroid is representable or not and also returns the ideal gen by polynomials coming from bases and non-bases.
+    
+    But we need a lot of input and have to do `Simplyfy_rep_mat` seperatly.
+"""
+function Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix}, G::AbstractAlgebra.Generic.MatSpaceElem{fqPolyRepMPolyRingElem}, R::fqPolyRepMPolyRing ,last_var::fqPolyRepMPolyRingElem)
+    Bases = QM.bases
+    Field = QM.field
+    char = Int(characteristic(Field))
+    Ext_F,a = FiniteField(char,1,"a")
+    q_rank = subspace_dim(Field,Bases[1])
+
+    if q_rank == 0
+        dim = ncols(Bases[1])
+        ms = matrix_space(Ext_F,1,dim)
+
+        return "Q-Matroid is not rep'able by $(ms(0))!!"
+    else
+        q_rank_dep_spaces = []
+        for dep_space in Deps
+            if subspace_dim(Field,dep_space) == q_rank
+                push!(q_rank_dep_spaces,dep_space)
+            end
+        end
+
+        # Create the polynomials
+        gen_polys = []
+        bases_polys = []
+        rabi_poly = last_var
+
+        for deps in q_rank_dep_spaces
+            p = det(G*transpose(matrix(Ext_F,Array(deps))))
+            push!(gen_polys,p)
+        end
+        for basis in Bases
+            p = det(G*transpose(matrix(Ext_F,Array(basis))))
+            push!(bases_polys,p)
+        end
+
+        for poly in bases_polys
+            rabi_poly *=poly
+        end
+        push!(gen_polys,rabi_poly-R(1))
+
+        # Create the ideal and test if it is one
+        I = ideal(R,Array(gen_polys))
+
+        if is_one(I)
+            return "Q-Matroid is not rep'able!!", I 
+        else
+            return "Q-Matroid is rep'able!!", I  
+        end
+    end
+
+end
+
+
+@doc raw"""
+    Is_representable(QM::Q_Matroid)
+
+    This function returns if a given q-matroid is representable or not and also returns the ideal gen by polynomials coming from bases and non-bases.
+    
+    It combines the `Simplyfy_rep_mat` and `Is_representable_midstep` function.
+"""
+function Is_representable(QM::Q_Matroid)
+
+    if subspace_dim(QM.field,QM.bases[1]) == 0
+        dim = ncols(QM.bases[1])
+        ms = matrix_space(QM.field,1,dim)
+
+        return "Q-Matroid is not rep'able by $(ms(0))!!"
+    else
+        G,R,var = Simplyfy_rep_mat(QM)
+        deps = Q_Matroid_Depentspaces(QM)
+        text,I = Is_representable_midstep(QM,deps,G,R,var)
+
+        return text, I
+    end
+    
+end
+################################################################################

@@ -11,6 +11,10 @@ using Random
 using InvertedIndices
 include("./q_properties.jl")
 
+###########################################################################################
+# !!! All matrices, in any list or alone, you input in a function/method should be RREF !!!
+###########################################################################################
+
 @doc raw"""
     q_binomialcoeff(q::Oscar.IntegerUnion, n::Oscar.IntegerUnion, k::Oscar.IntegerUnion)
 
@@ -139,6 +143,46 @@ function sum_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
     else
         return cleaned_mat
     end
+end
+################################################################################
+
+
+@doc raw"""
+    inters_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+
+    Returns the vs-intersection of the two subspaces `space_1` `space_2` sitting in an ambient vectorspace.
+"""
+function inters_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+    dim = ncols(space_1)
+    ms = matrix_space(field,1,dim)
+    zero_vec = ms(0)
+
+    subs_1 = subspaces_fix_space(field,space_1)
+    subs_2 = subspaces_fix_space(field,space_2)
+
+    subs_list_1 = []
+    subs_list_2 = []
+
+    # Create list ob subs
+    for elm in subs_1
+        for space in elm
+            push!(subs_list_1,space)
+        end
+    end
+
+    for elm in subs_2
+        for space in elm
+            push!(subs_list_2,space)
+        end
+    end
+
+    # Cumpute intersecton of subs_list_1, subs_list_2
+    inters_list = intersect(subs_list_1,subs_list_2)
+
+    # Choose the element with maximal dim in that List
+    inters = AbstractVector{fpMatrix}([y for y in inters_list[findall(x->subspace_dim(field,x)==maximum(z->subspace_dim(field,z),inters_list),inters_list)]])
+
+    return inters
 end
 ################################################################################
 
@@ -398,6 +442,50 @@ function  dim_one_subs(field::Nemo.fpField, space::fpMatrix)
     else
         return collection_of_subs[2]
     end
+end
+################################################################################
+
+
+@doc raw"""
+    standard_embedding_higher_dim(field::Nemo.fpField, space::fpMatrix, coord::Oscar-IntegerUnion)
+
+    Takes as input a list of subspaces of an ambient spaces and returns a list where every of these spaces is embedding in the nect higher dimension.
+    
+    Here the standard embedding are used, meaning we add a 0 in the specified position for every vector of the original space.
+"""
+function standard_embedding_higher_dim(field::Nemo.fpField, spaces::AbstractVector{fpMatrix}, coord::Oscar.IntegerUnion)
+    new_dim = ncols(spaces[1]) + 1
+    old_dim = ncols(spaces[1])
+    helper_ms = matrix_space(field,old_dim,old_dim)
+    Helper_zero_mat = helper_ms(0)
+    Helper_id_mat = helper_ms(1)
+    zero_vec = Helper_zero_mat[:,1]
+
+    # Create list of unit vec'S
+    unit_vecs = []
+    for i in range(1,old_dim)
+        push!(unit_vecs,Helper_id_mat[:,i])
+    end
+    insert!(unit_vecs,coord,zero_vec)
+
+    # Compute the embedding for all spaces in the list
+    transformed_spaces =AbstractVector{fpMatrix}([])
+    MS = matrix_space(field,old_dim,new_dim)
+
+    for space in spaces
+        zero_mat = MS(0)
+        for i in range(1,new_dim)
+            if i==coord
+                continue
+            else
+                zero_mat[:,i]=unit_vecs[i]
+            end
+        end
+        trans_mat = space*zero_mat
+        push!(transformed_spaces,trans_mat)
+    end
+
+    return transformed_spaces
 end
 ################################################################################
 

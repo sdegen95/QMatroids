@@ -10,6 +10,10 @@ using Compose
 using Random
 using InvertedIndices
 
+###########################################################################################
+# !!! All matrices, in any list or alone, you input in a function/method should be RREF !!!
+###########################################################################################
+
 
 @doc raw"""
     Construct a `q-matroid` with bases and field attribute.
@@ -79,5 +83,91 @@ function q_matroid_from_matrix(field::fqPolyRepField, Mat::fqPolyRepMatrix)
 
     return Q_Matroid(new_field,q_mat_bases)
     
+end
+################################################################################
+
+
+
+@doc raw"""
+    Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+
+    Returns if the inputed list of spaces form the set of Depnedentspaces of a Q-Matroid.
+
+    For the choice you can choose "yes" and if the list is not the set of Depnedentspaces of a Q-Matroid, it will return also which axiom of (D1)-(D3) fails. 
+"""
+function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+    are_deps = true
+    loop_breaker = true
+    fail = "Non"
+
+    if Deps == []
+        if isnothing(choice)
+            return are_deps
+        elseif choice == "Yes"
+            return are_deps,fail
+        end
+    else
+        dim = ncols(Deps[1])
+        ms = matrix_space(field,1,dim)
+        zero_vec = ms(0)
+        deps_dict = OrderedDict([])
+
+        # Fill info_dict with all necesssary information
+        for (id,space) in enumerate(Deps)
+            merge!(deps_dict,Dict(id=>[space,containments_fix_space(field,space)]))
+        end
+
+        # Check axiom (D1)
+        if zero_vec in Deps
+            are_deps = false
+            fail = "Axiom (D1)"
+        end
+
+        # Check axiom (D2)
+        if are_deps
+            for pair in values(deps_dict)
+                if issubset(pair[2],Deps) == false
+                    are_deps = false
+                    fail = "Axiom (D2)"
+                    break
+                else
+                    continue
+                end
+            end
+        end
+
+        # Check axiom (D3)
+        if are_deps
+            for pair in combinations(collect(values(deps_dict)),2)
+                if loop_breaker
+                    if !(inters_vs(field,pair[1][1],pair[2][1])[1] in Deps)
+                        sum = sum_vs(field,pair[1][1],pair[2][1])
+                        codim_ones = codim_one_subs(field,sum)
+                        for space in codim_ones
+                            if !(space in Deps)
+                                are_deps = false
+                                loop_breaker = false
+                                fail = "Axiom (D3)"
+                                break
+                            else
+                                continue
+                            end
+                        end
+                    else
+                        continue
+                    end
+                else
+                    break
+                end
+            end
+        end
+
+        if isnothing(choice)
+            return are_deps
+        elseif choice == "Yes"
+            return are_deps,fail
+        end
+    end
+
 end
 ################################################################################
