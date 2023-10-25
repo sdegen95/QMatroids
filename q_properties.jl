@@ -247,6 +247,36 @@ end
 
 
 @doc raw"""
+    Q_Matroid_Spanningspaces(QM::Q_Matroid)
+
+    This returns the flats of the q-matroid.
+"""
+function Q_Matroid_Spanningspaces(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    q_rank = subspace_dim(Field,Bases[1]) 
+    dim =  ncols(Bases[1])
+    indeps = Q_Matroid_Indepentspaces(QM)
+    deps = Q_Matroid_Depentspaces(QM)
+    all_subs = all_subspaces(Field,dim)
+
+    # Push all spaces with have rank equal to `q_rank`
+    spanning_spaces = AbstractVector{fpMatrix}([])
+    for sub in all_subs
+        if Q_Matroid_Ranks(QM,sub,indeps,deps) == q_rank
+            push!(spanning_spaces,sub)
+        else
+            continue
+        end
+    end
+
+    return spanning_spaces
+    
+end
+################################################################################
+
+
+@doc raw"""
     Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix}, show::String)
 
     This returns the lattice of the q-matroid as graph, where we only draw edges that increase the rank.
@@ -581,6 +611,28 @@ function Projectivization_matroid(QM::Q_Matroid)
 
     return proj_mat
     
+end
+################################################################################
+
+
+@doc raw"""
+    Dual_Q_Matroid(QM::Q_Matroid)
+
+    Returns the dual Q-Matroid for the given Q-Matroid w.r.t. the standard dot product. 
+"""
+function Dual_Q_Matroid(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = QM.field
+    bases_dual_q_matroid = AbstractVector{fpMatrix}([])
+
+    for basis in Bases
+        dual_basis = orthogonal_complement(Field,basis)[1]
+        push!(bases_dual_q_matroid,dual_basis)
+    end
+
+    Dual_QM = Q_Matroid(Field,bases_dual_q_matroid)
+
+    return Dual_QM
 end
 ################################################################################
 

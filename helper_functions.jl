@@ -512,3 +512,63 @@ function Möbius_func_subspace_lat(field::Nemo.fpField, space_1::fpMatrix, space
     end
 end
 ################################################################################
+
+
+@doc raw"""
+    Orthogonal_complement(field::Nemo.fpField, space::fpMatrix)
+
+    Returns the orthogonal complement of the `space` in a given ambient space, w.r.t. the standard dor product. 
+"""
+function orthogonal_complement(field::Nemo.fpField, A::fpMatrix)
+    n = ncols(A)
+    subdim = subspace_dim(field,A)
+    one_spaces = subspaces_fix_dim(field,1,n)
+    MS = matrix_space(field,n,n)
+    one_mat = MS(1)
+    zero_vec = MS(0)[1,:]
+
+    if A == zero_vec
+        return AbstractVector{fpMatrix}([one_mat])
+    elseif A == one_mat
+        return AbstractVector{fpMatrix}([zero_vec])
+    else
+        generators_A = []
+        for i in range(1,subdim)
+            push!(generators_A,A[i,:])
+        end
+
+        # Search for all one_space gen's that are not orthogonal to all gens of A 
+        not_complement_elms = []
+        for one_space in one_spaces
+            for gen in generators_A
+                if gen*transpose(one_space) != 0
+                    push!(not_complement_elms,one_space)
+                else
+                    continue
+                end
+            end
+        end
+
+        # Get one-spaces that are not in not_complement_elms
+        complement_elms = []
+        for one_space in one_spaces
+            if !(one_space in not_complement_elms)
+                push!(complement_elms,one_space)
+            end
+        end
+
+        # Construct a matrix out of this vectors
+        orth_comp_as_matrix = AbstractVector{fpMatrix}([]) 
+        for i in combinations(complement_elms,n-subdim)
+            r,matrix = rref(vcat(i))
+            if r == n-subdim
+                push!(orth_comp_as_matrix,matrix)
+            end
+        end
+        orth_comp_as_matrix = unique(orth_comp_as_matrix)
+
+
+        return orth_comp_as_matrix
+    end
+end
+################################################################################
