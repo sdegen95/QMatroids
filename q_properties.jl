@@ -366,6 +366,71 @@ function Are_isom_q_matroids(QM1::Q_Matroid, QM2::Q_Matroid)
 
     return Graphs.Experimental.has_isomorph(lat_1,lat_2)
 end
+
+
+@doc raw"""
+    Are_isom_q_matroidsV2(QM1::Q_Matroid, QM2::Q_Matroid, lats=nothing::Union{Nothing,AbstractVector{SimpleGraph}}) 
+"""
+function Are_isom_q_matroidsV2(QM1::Q_Matroid, QM2::Q_Matroid, lats=nothing::Union{Nothing,AbstractVector{SimpleGraph}})
+    
+    if isnothing(lats)
+        indeps_1 = Q_Matroid_Indepentspaces(QM1) 
+        deps_1 = Q_Matroid_Depentspaces(QM1)
+        l1 = Q_Matroid_lattice(QM1,indeps_1,deps_1,"no")
+        indeps_2 = Q_Matroid_Indepentspaces(QM2)
+        deps_2 = Q_Matroid_Depentspaces(QM2)
+        l2 = Q_Matroid_lattice(QM2,indeps_2,deps_2,"no")
+
+        # Transform Graph.jl Graphs to Oscar Graphs
+        edges1 = collect(Graphs.edges(l1))
+        edges2 = collect(Graphs.edges(l2))
+        vert1 = Graphs.nv(l1)
+        vert2 = Graphs.nv(l2)
+
+        new_l1 = Oscar.Graph{Undirected}(vert1)
+        new_l2 = Oscar.Graph{Undirected}(vert2)
+
+        for edge in edges1
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_l1,s,d)
+        end
+        for edge in edges2
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_l2,s,d)
+        end
+
+        return Oscar.is_isomorphic(new_l1,new_l2)
+
+    else
+        l1 = lats[1]
+        l2 = lats[2]
+
+        # Transform Graph.jl-Graphs to Oscar Graphs
+        edges1 = collect(Graphs.edges(l1))
+        edges2 = collect(Graphs.edges(l2))
+        vert1 = Graphs.nv(l1)
+        vert2 = Graphs.nv(l2)
+
+        new_l1 = Oscar.Graph{Undirected}(vert1)
+        new_l2 = Oscar.Graph{Undirected}(vert2)
+
+        for edge in edges1
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_l1,s,d)
+        end
+        for edge in edges2
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_l2,s,d)
+        end
+
+        return Oscar.is_isomorphic(new_l1,new_l2)
+    end
+
+end
 ################################################################################
 
 
@@ -440,6 +505,85 @@ function Isom_classes_from_mats(field::fqPolyRepField, list_matrices::AbstractVe
     return list_diff_q_mat
     
 end
+
+
+@doc raw"""
+    isom_classes_from_matsV2(List_matrices::AbstractVector{fqPolyRepMatrix}) 
+"""
+function Isom_classes_from_matsV2(field::fqPolyRepField, list_matrices::AbstractVector{fqPolyRepMatrix})
+    unique_index = 1
+    matrices_dict = OrderedDict([])
+    key_value_list = []
+    list_diff_q_mat = []    
+
+    # Create dict
+    for (id,matrix) in enumerate(list_matrices)
+        QM = q_matroid_from_matrix(field,matrix)
+        indeps = Q_Matroid_Indepentspaces(QM)
+        deps = Q_Matroid_Depentspaces(QM)
+        graph = Q_Matroid_lattice(QM,indeps,deps,"no")
+
+        # Transform Graph.jl Graphs to Oscar Graphs
+        edges = collect(Graphs.edges(graph))
+        vert = Graphs.nv(graph)
+        new_graph = Oscar.Graph{Undirected}(vert)
+        for edge in edges
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_graph,s,d)
+        end
+
+        merge!(matrices_dict,Dict(id=>[matrix,QM,indeps,deps,new_graph]))
+    end
+
+    # Fill key_value_list
+    for (key,tuple) in matrices_dict
+        push!(key_value_list,(key,tuple[1]))
+    end
+
+    # Start values
+    start_mat = matrices_dict[unique_index][1]
+    start_qm = matrices_dict[unique_index][2]
+    start_indeps = matrices_dict[unique_index][3]
+    start_deps = matrices_dict[unique_index][4]
+    start_l = matrices_dict[unique_index][5]
+
+    #list_of_bases = []
+    list_non_isom_q_mats = []
+    list_isom_q_mats = []
+
+    while length(key_value_list) > 0
+        for elm in key_value_list
+            if elm[2] != start_mat
+                #if Are_isom_q_matroidsV2(start_qm,matrices_dict[elm[1]][2],[start_l,matrices_dict[elm[1]][5]])
+                if Oscar.is_isomorphic(start_l,matrices_dict[elm[1]][5])
+                    push!(list_isom_q_mats,(elm[1],elm[2]))
+                else
+                    push!(list_non_isom_q_mats,(elm[1],elm[2]))
+                end
+            end
+        end
+        push!(list_diff_q_mat,(start_mat,start_qm,length(start_qm.bases),length(list_isom_q_mats)))
+
+        # Reassignements
+        if list_non_isom_q_mats == []
+            key_value_list = list_non_isom_q_mats
+        else
+            key_value_list = list_non_isom_q_mats
+            start_mat = matrices_dict[key_value_list[unique_index][1]][1]
+            start_qm = matrices_dict[key_value_list[unique_index][1]][2]
+            start_indeps = matrices_dict[key_value_list[unique_index][1]][3]
+            start_deps = matrices_dict[key_value_list[unique_index][1]][4]
+            start_l = matrices_dict[key_value_list[unique_index][1]][5]
+
+            list_non_isom_q_mats = []
+            list_isom_q_mats = []
+        end
+    end
+
+    return list_diff_q_mat
+    
+end
 ################################################################################
 
 
@@ -484,6 +628,81 @@ function Isom_classes_from_bases(field::Nemo.fpField, List_bases::AbstractVector
         for elm in key_value_list
             if elm[2] != start_qm.bases
                 if Graphs.Experimental.has_isomorph(start_l,Bases_dict[elm[1]][4])
+                    push!(list_isom_q_mats,(elm[1],elm[2]))
+                else
+                    push!(list_non_isom_q_mats,(elm[1],elm[2]))
+                end
+            end
+        end
+        push!(list_diff_q_mat,(start_qm,length(start_qm.bases),length(list_isom_q_mats)))
+
+        # Reassignements
+        if list_non_isom_q_mats == []
+            key_value_list = list_non_isom_q_mats
+        else
+            key_value_list = list_non_isom_q_mats
+            start_qm = Bases_dict[key_value_list[unique_index][1]][1]
+            start_indeps = Bases_dict[key_value_list[unique_index][1]][2]
+            start_deps = Bases_dict[key_value_list[unique_index][1]][3]
+            start_l = Bases_dict[key_value_list[unique_index][1]][4]
+
+            list_non_isom_q_mats = []
+            list_isom_q_mats = []
+        end
+    end
+
+    return list_diff_q_mat
+end
+
+
+@doc raw"""
+    isom_classes_from_basesV2(List_bases::AbstractVector{fpMatrix})
+"""
+function Isom_classes_from_basesV2(field::Nemo.fpField, List_bases::AbstractVector{AbstractVector{fpMatrix}})
+    unique_index = 1
+    Bases_dict = OrderedDict([])
+    key_value_list = []
+    list_diff_q_mat = []    
+
+    # Create dict
+    for (id,elm) in enumerate(List_bases)
+        QM = Q_Matroid(field,elm)
+        indeps = Q_Matroid_Indepentspaces(QM)
+        deps = Q_Matroid_Depentspaces(QM)
+        graph = Q_Matroid_lattice(QM,indeps,deps,"no")
+
+        # Transform Graph.jl Graphs to Oscar Graphs
+        edges = collect(Graphs.edges(graph))
+        vert = Graphs.nv(graph)
+        new_graph = Oscar.Graph{Undirected}(vert)
+        for edge in edges
+            s = Graphs.src(edge)
+            d = Graphs.dst(edge)
+            Oscar.add_edge!(new_graph,s,d)
+        end
+
+        merge!(Bases_dict,Dict(id=>[QM,indeps,deps,new_graph]))
+    end
+
+    # Fill key_value_list
+    for (key,tuple) in Bases_dict
+        push!(key_value_list,(key,tuple[1].bases))
+    end
+
+    # Start values
+    start_qm = Bases_dict[unique_index][1]
+    start_indeps = Bases_dict[unique_index][2]
+    start_deps = Bases_dict[unique_index][3]
+    start_l = Bases_dict[unique_index][4]
+
+    #list_of_bases = []
+    list_non_isom_q_mats = []
+    list_isom_q_mats = []
+
+    while length(key_value_list) > 0
+        for elm in key_value_list
+            if elm[2] != start_qm.bases
+                if Oscar.is_isomorphic(start_l,Bases_dict[elm[1]][4])
                     push!(list_isom_q_mats,(elm[1],elm[2]))
                 else
                     push!(list_non_isom_q_mats,(elm[1],elm[2]))
