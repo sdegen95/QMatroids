@@ -35,18 +35,22 @@ end
 
 
 @doc raw"""
-    q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{FpMatrix})
+    q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{FpMatrix},choice=nothing::Union{Nothing,String})
 
     Construct a `q-matroid` from the independentspaces. 
 
     All matrices in that list need to be in RREF.
 """
-function q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{fpMatrix})
+function q_matroid_from_independentspaces(field::Nemo.fpField, Indeps::AbstractVector{fpMatrix},choice=nothing::Union{Nothing,String})
     sort!(Indeps, by = x -> subspace_dim(field,x))
     Sorted_indeps = Indeps[findall(y->subspace_dim(field,y)==maximum(z->subspace_dim(field,z),Indeps),Indeps)]
-    bases = [x for x in Sorted_indeps]
+    bases = AbstractVector{fpMatrix}([x for x in Sorted_indeps])
 
-    return Q_Matroid(field,bases)
+    if isnothing(choice)
+        return Q_Matroid(field,bases)
+    elseif choice == "yes"
+        return bases
+    end
     
 end
 ################################################################################

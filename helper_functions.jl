@@ -504,6 +504,66 @@ end
 
 
 @doc raw"""
+    k_intervall(field::Nemo.fpField, spaces::AbstractVector{fpMatrix})
+
+    Returns all possible lattice k_intervalls of a collection of spaces living in an given ambient space.
+
+    The number `k` has to be greater or equal to 2.
+"""
+function k_interval(field::Nemo.fpField, spaces::AbstractVector{fpMatrix}, k::Oscar.IntegerUnion)
+    info_dict = OrderedDict([])
+    diamonds = AbstractVector{AbstractVector{fpMatrix}}([])
+    spaces = sort(spaces, by = x->subspace_dim(field,x))
+
+    # Fill info_dict with all necesssary information: [space, dim, space containment, space_subspaces, set_subspace]
+    for (id,space) in enumerate(spaces)
+        all_subs = AbstractVector{fpMatrix}([])
+        subs = subspaces_fix_space(field,space)
+        for sub in subs
+            for space in sub
+                push!(all_subs,space)
+            end
+        end
+        merge!(info_dict,Dict(id=>[space,subspace_dim(field,space),containments_fix_space(field,space),all_subs,subspace_set(field,space)]))
+    end
+
+    # Create all possible diamonds from that list
+    values_list = collect(values(info_dict))
+    for combi in combinations(values_list,2)
+        if combi[2][2] == combi[1][2] + k
+            if issubset(combi[1][5],combi[2][5])
+                inters = intersect(combi[2][4],combi[1][3])
+                if issubset(inters,spaces)
+                    push!(diamonds,inters)
+                else
+                    continue
+                end
+            else
+                continue
+            end
+        elseif combi[1][2] == combi[2][2] + k
+            if issubset(combi[2][5],combi[1][5])
+                inters = intersect(combi[1][4],combi[2][3])
+                if issubset(inters,spaces)
+                    push!(diamonds,inters)
+                else
+                    continue
+                end
+            else
+                continue
+            end
+        else
+            continue
+        end
+    end
+
+    return unique!(diamonds)
+    
+end
+################################################################################
+
+
+@doc raw"""
     standard_embedding_higher_dim(field::Nemo.fpField, space::fpMatrix, coord::Oscar-IntegerUnion)
 
     Takes as input a list of subspaces of an ambient spaces and returns a list where every of these spaces is embedding in the nect higher dimension.
