@@ -39,14 +39,17 @@ end
     subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
 
     Returns all subspaces of a fixed dimension `k` in the fixed ambient dimension `n`.
+
+    Here `k` has to be an integer between 0 and `n`.
 """
 function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
     char = Int(Oscar.characteristic(field))
     one_dims = AbstractVector{fpMatrix}([])
     k_spaces = AbstractVector{fpMatrix}([])
 
-    ms = matrix_space(field,1,n)
-    zero_vec = ms(0)
+    ms = matrix_space(field,n,n)
+    zero_vec = ms(0)[1,:]
+    id_mat = ms(1)
 
     # Create one dim subspaces
     for i in range(1,char^(n)-1)
@@ -59,6 +62,8 @@ function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.
     # Create all higher dimensional spaces
     if k == 0
         push!(k_spaces,zero_vec)
+    elseif k == n
+        push!(k_spaces,id_mat)
     else
         for combi in combinations(one_dims,k)
             mat = vcat(combi)

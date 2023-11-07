@@ -115,6 +115,7 @@ function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector
         ms = matrix_space(field,1,dim)
         zero_vec = ms(0)
         deps_dict = OrderedDict([])
+        vs_sums = []
 
         # Fill info_dict with all necesssary information
         for (id,space) in enumerate(Deps)
@@ -146,16 +147,21 @@ function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector
                 if loop_breaker
                     if !(inters_vs(field,pair[1][1],pair[2][1])[1] in Deps)
                         sum = sum_vs(field,pair[1][1],pair[2][1])
-                        codim_ones = codim_one_subs(field,sum)
-                        for space in codim_ones
-                            if !(space in Deps)
-                                are_deps = false
-                                loop_breaker = false
-                                fail = "Axiom (D3)"
-                                break
-                            else
-                                continue
+                        if !(sum in vs_sums)
+                            push!(vs_sums,sum)
+                            codim_ones = codim_one_subs(field,sum)
+                            for space in codim_ones
+                                if !(space in Deps)
+                                    are_deps = false
+                                    loop_breaker = false
+                                    fail = "Axiom (D3)"
+                                    break
+                                else
+                                    continue
+                                end
                             end
+                        else
+                            continue
                         end
                     else
                         continue

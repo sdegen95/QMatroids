@@ -43,12 +43,17 @@ end
 
     This returns the Depentspaces of the Q-Matroid.
 """
-function Q_Matroid_Depentspaces(QM::Q_Matroid)
+function Q_Matroid_Depentspaces(QM::Q_Matroid,choice=nothing::Union{Nothing,AbstractVector{fpMatrix}})
     Bases = QM.bases
     Field = QM.field
     dim = ncols(Bases[1])
     q_mat_dep_spaces = AbstractVector{fpMatrix}([])
-    all_subs = all_subspaces(Field,dim)
+    
+    if isnothing(choice)
+        all_subs = all_subspaces(Field,dim)
+    else
+        all_subs = choice
+    end
 
     # Compute independent-space
     Indeps = Q_Matroid_Indepentspaces(QM)
@@ -984,6 +989,8 @@ function Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix},
 
         # Create the ideal and test if it is one
         I = ideal(R,Array(gen_polys))
+        gb = collect(groebner_basis(I, ordering = lex(R)))
+        I = ideal(R,gb)
 
         if is_one(I)
             return "Q-Matroid is not rep'able!!", I 
@@ -1019,3 +1026,121 @@ function Is_representable(QM::Q_Matroid)
     
 end
 ################################################################################
+
+
+@doc raw"""
+    Are_q_quotients(QM1::Q_Matroid, QM2::Q_Matroid)
+
+    Returns if the given q-matroids happen to be q-quotients.
+
+    This means that every circ of `QM2` is a sum of circ's of `QM1`.
+"""
+function Are_q_quotients(QM1::Q_Matroid, QM2::Q_Matroid)
+    is_q_quotient = true
+    Field = QM.field
+    circs_1 = Q_Matroid_Circuits(QM1)
+    circs_2 = Q_Matroid_Circuits(QM2)
+
+    for circ in circs_2
+        circ_counter = 0
+        sub_dim = subspace_dim(Field,circ)
+        for i in range(1,sub_dim)
+            if i == 1
+                if circ in circs_1
+                    circ_counter += 1
+                else
+                    continue
+                end
+            else
+                summing_collec = collect(combinations(circs_1,i))
+                for tuple in summing_collec
+                    for elm in tuple
+                        if elm != tuple[1]
+                            tuple[1] = sum_vs(Field,tuple[1],elm)
+                        end
+                    end
+                    if tuple[1] == circ
+                        circ_counter += 1
+                    else
+                        continue
+                    end
+                end
+            end
+        end
+        if circ_counter != 0
+            continue
+        else
+            is_q_quotient = false
+            break
+        end
+    end
+
+    return is_q_quotient
+    
+end
+################################################################################
+
+
+@doc raw"""
+    Is_q_concordant_collec(collection::AbstractVector{Q_Matroid})
+
+    Returns if the given collection of q-matroids is a q-concordant collection.
+        
+    This means that every pair of distinct q-matroids from that collection are q-quotients (in one way). 
+"""
+function Is_q_concordant_collec(collection::AbstractVector{Q_Matroid})
+    is_q_concordant = true
+
+    for combi in combinations(collection,2)
+        if Are_q_quotients(combi[1],combi[2]) || Are_q_quotients(combi[2],combi[1]) 
+            continue
+        else
+            is_q_concordant = false
+        end
+    end
+
+    return is_q_concordant
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
+
+    Returns the Q-Higgs Lift of the given q-matroids.
+
+    Here it's required that `QM1` is a q-quotient of `QM2`
+        
+    
+"""
+function Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
+    Bases_1 = QM1.bases
+    Field = QM1.field
+    dim = ncols(Bases_1[1])
+    rank_1 = subspace_dim(Field,Bases_1[1])
+    ms = matrix_space(Field,1,dim)
+    zero_vec = ms(0)
+    
+    Indeps_1 = Q_Matroid_Indepentspaces(QM1)
+    Indeps_2 = Q_Matroid_Indepentspaces(QM2)
+    Deps_1 = Q_Matroid_Depentspaces(QM1)
+    Q_Higgs_lift_bases = AbstractVector{fpMatrix}([])
+
+    # Construct all subspaces
+    all_spaces = all_subspaces(Field,dim)
+    
+    # Sort the spaces by the rule: a bases of the Q-Q_Higgs_lift is indep. in Q-Mat with Bases_2 and having rank rank_1 in in Q-Mat with Bases_1
+    for space in all_spaces
+        if space in Indeps_2
+            if Q_Matroid_Ranks(QM1,space,Indeps_1,Deps_1) == rank_1
+                if subspace_dim(Field,space) == rank_1 + 1
+                    if space != zero_vec
+                        push!(Q_Higgs_lift_bases,space)
+                    end
+                end
+            end
+        end
+    end
+
+    return Q_Matroid(Field,Q_Higgs_lift_bases)
+end
