@@ -247,14 +247,44 @@ function Q_Matroid_Flats(QM::Q_Matroid)
 
     return q_matroid_flats
 end
+################################################################################
 
+
+@doc raw"""
+    Q_Matroid_Hyperplanes(QM::Q_Matroid)
+
+    This returns the Hyperplanes, i.e. maximal proper flats, of the q-matroid.
+"""
+function Q_Matroid_Hyperplanes(QM::Q_Matroid)
+    Field = QM.field
+    dim = ncols(QM.bases[1])
+    ms = matrix_space(Field,dim,dim)
+    id_mat = ms(1)
+
+    flats = Q_Matroid_Flats(QM)
+    cleaned_flats = [space for space in flats if space != id_mat]
+    q_hyperplanes = AbstractVector{fpMatrix}([])
+
+    for elm in cleaned_flats
+        cont_list = [x for x in containments_fix_space(Field,elm) if x != elm]
+        inters = intersect(cont_list,cleaned_flats)
+        if inters == []
+            push!(q_hyperplanes,elm)
+        else
+            continue
+        end
+    end
+    
+    return q_hyperplanes
+
+end
 ################################################################################
 
 
 @doc raw"""
     Q_Matroid_Spanningspaces(QM::Q_Matroid)
 
-    This returns the flats of the q-matroid.
+    This returns the Spanning-spaces, i.e. all spaces which have full rank, of the q-matroid.
 """
 function Q_Matroid_Spanningspaces(QM::Q_Matroid)
     Bases = QM.bases
@@ -277,6 +307,55 @@ function Q_Matroid_Spanningspaces(QM::Q_Matroid)
 
     return spanning_spaces
     
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_Non_Spanningspaces(QM::Q_Matroid)
+
+    This returns the Nom-spanning-spaces of the q-matroid.
+"""
+function Q_Matroid_Non_Spanningspaces(QM::Q_Matroid)
+    Field = QM.field
+    dim = ncols(QM.bases[1])
+    all_subs = all_subspaces(Field,dim)
+    span_spaces = Q_Matroid_Spanningspaces(QM)
+    Non_spanning_spaces = AbstractVector{fpMatrix}([])
+
+    for space in all_subs
+        if !(space in span_spaces)
+            push!(Non_spanning_spaces,space)
+        else
+            continue
+        end
+    end
+
+    return Non_spanning_spaces
+
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_Openspaces(QM::Q_Matroid)
+
+    This returns the open-spaces, i.e. subspaces which are sums of circtuits, of the q-matroid.
+"""
+function Q_Matroid_Openspaces(QM::Q_Matroid)
+    Field = QM.field
+    dual = Dual_Q_Matroid(QM)
+    flats = Q_Matroid_Flats(dual)
+
+    Openspaces = AbstractVector{fpMatrix}([])
+
+    for space in flats
+        dual_flat = orthogonal_complement(Field,space)[1]
+        push!(Openspaces,dual_flat)
+    end
+
+    return Openspaces
+
 end
 ################################################################################
 
