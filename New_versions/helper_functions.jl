@@ -42,6 +42,9 @@ end
 
     Here `k` has to be an integer between 0 and `n`.
 """
+# Changes to old version:
+# (1) changed to if-else-statement s.t. the `one_dims` will only be computeted if `0 < k < n`
+
 function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
     char = Int(Oscar.characteristic(field))
     one_dims = AbstractVector{fpMatrix}([])
@@ -51,20 +54,20 @@ function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.
     zero_vec = ms(0)[1,:]
     id_mat = ms(1)
 
-    # Create one dim subspaces
-    for i in range(1,char^(n)-1)
-        array = [digits(i,base=char,pad=n)]
-        vec = rref(matrix(field,array))[2]
-        push!(one_dims,vec)
-    end
-    one_dims = unique(one_dims)
-
-    # Create all higher dimensional spaces
     if k == 0
         push!(k_spaces,zero_vec)
     elseif k == n
         push!(k_spaces,id_mat)
     else
+        # Create one dim subspaces
+        for i in range(1,char^(n)-1)
+            array = [digits(i,base=char,pad=n)]
+            vec = rref(matrix(field,array))[2]
+            push!(one_dims,vec)
+        end
+        one_dims = unique(one_dims)
+
+        # Create all higher dimensional spaces
         for combi in combinations(one_dims,k)
             mat = vcat(combi)
             r,rref_mat = rref(mat)
@@ -72,9 +75,8 @@ function subspaces_fix_dim(field::Nemo.fpField, k::Oscar.IntegerUnion, n::Oscar.
                 push!(k_spaces,rref_mat)
             end
         end
-    end
-
-    k_spaces = unique(k_spaces) 
+        k_spaces = unique(k_spaces)
+    end 
     
     return k_spaces
 end
