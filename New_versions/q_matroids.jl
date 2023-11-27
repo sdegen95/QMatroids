@@ -20,19 +20,22 @@ using InvertedIndices
 
     All matrices in the bases-list need to be in RREF.
 """
+# Changes to old version:
+# (1) replaced `field`-attribute by `groundspace`-attribute 
 
 struct Q_Matroid
-    field::Nemo.fpField           # field of the groudspace
-    bases::AbstractVector{fpMatrix} # bases of the q-matroid
+    groundspace::fpMatrix           # groudspace as id-matrix over the corresponding field.
+    bases::AbstractVector{fpMatrix} # bases of the q-matroid.
 end
 
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
+# (2) using new attribute `groundspace`
 
 function Base.show(io::IO, QM::Q_Matroid)
     q_rank = rank(QM.bases[1])
-    dim = ncols(QM.bases[1])
-    print(io, "Q-Matroid of rank $(q_rank) in $(dim)-dim. vector-space over the $(QM.field)")
+    dim = ncols(QM.groundspace)
+    print(io, "Q-Matroid of rank $(q_rank) in $(dim)-dim. vector-space over the $(base_ring(QM.bases[1]))")
 end
 ################################################################################
 
@@ -40,7 +43,9 @@ end
 @doc raw"""
     q_matroid_from_independentspaces(Indeps::AbstractVector{fpMatrix}, show_bases=false::Bool)
 
-    Construct a `q-matroid` from the independentspaces. 
+    Construct a `q-matroid` from the independentspaces.
+    
+    One can set the default-value for `show_bases` from `false` to `true`, to only show the bases of the resulting q-matroid.
 
     All matrices in that list need to be in RREF.
 """
@@ -48,10 +53,13 @@ end
 # (1) using rank instead of `subspace_dim`-func
 # (2) got rid of `field`-variable
 # (3) changed `choice`-var. to `show_bases`-var. (boolean value) with default `false`.
-# (4) using `base_ring`-func. instead of `field`-func.-variable 
+# (4) using `base_ring`-func. instead of `field`-func.-variable
+# (5) using the new attribute of the q-matroid struct
 
 function q_matroid_from_independentspaces(Indeps::AbstractVector{fpMatrix}, show_bases=false::Bool)   
-    field = base_ring(Indeps[1]) 
+    field = base_ring(Indeps[1])
+    dim = ncols(Indeps[1])
+    id_mat = matrix_space(field,dim,dim)(1)
 
     sort!(Indeps, by = x -> rank(x))
 
@@ -60,7 +68,7 @@ function q_matroid_from_independentspaces(Indeps::AbstractVector{fpMatrix}, show
     bases = AbstractVector{fpMatrix}([x for x in Sorted_indeps])
 
     if show_bases == false
-        return Q_Matroid(field,bases) 
+        return Q_Matroid(id_mat,bases) 
     elseif show_bases == true
         return bases
     end
@@ -78,7 +86,8 @@ end
 # (1) using rank instead of `subspace_dim`-func
 # (2) got rid of `field`-variable
 # (3) using `base_ring`-func. instead of `field`-func.-variable
-# (4) got rid of if-statement to determine `k`  
+# (4) got rid of if-statement to determine `k` 
+# (5) using the new attribute of the q-matroid struct 
 
 function q_matroid_from_matrix(Mat::fqPolyRepMatrix)
     field = base_ring(Mat) 
@@ -86,6 +95,7 @@ function q_matroid_from_matrix(Mat::fqPolyRepMatrix)
     k = rank(Mat) 
     char = Int(characteristic(field))
     new_field = GF(char)
+    id_mat = matrix_space(new_field,n,n)(1)
 
     q_mat_bases = AbstractVector{fpMatrix}([])
     # List of subspaces of dim k which are bases for given G
@@ -97,7 +107,7 @@ function q_matroid_from_matrix(Mat::fqPolyRepMatrix)
         end
     end
 
-    return Q_Matroid(new_field,q_mat_bases)
+    return Q_Matroid(id_mat,q_mat_bases)
     
 end
 ################################################################################

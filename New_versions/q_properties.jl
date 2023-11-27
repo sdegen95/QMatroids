@@ -16,9 +16,13 @@ include("./q_matroids.jl")
 
     This returns the Indepentspaces of the Q-Matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) using `base_ring`-func. instead of old struct `field`-attribute
+
 function Q_Matroid_Indepentspaces(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(Bases[1])
 
     q_mat_indep_spaces = AbstractVector{fpMatrix}([])
     for basis in Bases
@@ -30,7 +34,7 @@ function Q_Matroid_Indepentspaces(QM::Q_Matroid)
         end
     end
 
-    q_mat_indep_spaces = sort(unique!(q_mat_indep_spaces), by =  x -> subspace_dim(Field, x))
+    q_mat_indep_spaces = sort(unique!(q_mat_indep_spaces), by =  x -> rank(x))
     
     return q_mat_indep_spaces
     
@@ -39,20 +43,24 @@ end
 
 
 @doc raw"""
-    Q_Matroid_Depentspaces(QM::Q_Matroid)
+    Q_Matroid_Depentspaces(QM::Q_Matroid, sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
 
     This returns the Depentspaces of the Q-Matroid.
 """
-function Q_Matroid_Depentspaces(QM::Q_Matroid,choice=nothing::Union{Nothing,AbstractVector{fpMatrix}})
-    Bases = QM.bases
-    Field = QM.field
-    dim = ncols(Bases[1])
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) using `base_ring`-func. instead of old struct `field`-attribute
+# (3) renamed the `choice-variable to `sub_lat`
+
+function Q_Matroid_Depentspaces(QM::Q_Matroid,sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
+    Field = base_ring(QM.bases[1])
+    dim = ncols(QM.groundspace)
     q_mat_dep_spaces = AbstractVector{fpMatrix}([])
     
-    if isnothing(choice)
+    if isnothing(sub_lat)
         all_subs = all_subspaces(Field,dim)
     else
-        all_subs = choice
+        all_subs = sub_lat
     end
 
     # Compute independent-space
@@ -76,14 +84,17 @@ end
 
     This returns the Loopspace of the q-matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of in-func. varible `Field`
+
 function Q_Matroid_Loopspace(QM::Q_Matroid)
-    Field = QM.field
     Deps = Q_Matroid_Depentspaces(QM)
 
     if Deps != []
-        min_dim = minimum(y->subspace_dim(Field,y),Deps)
+        min_dim = minimum(y->rank(y),Deps)
         if min_dim == 1 
-            return AbstractVector{fpMatrix}([x for x in Deps[findall(y->subspace_dim(Field,y)==min_dim,Deps)]])
+            return AbstractVector{fpMatrix}([x for x in Deps[findall(y->rank(y)==min_dim,Deps)]])
         else
             return []
         end
@@ -96,38 +107,51 @@ end
 
 
 @doc raw"""
-    Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+    Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, indeps=nothing::Union{Nothing,AbstractVector{fpMatrix}}, deps=nothing::Union{Nothing,AbstractVector{fpMatrix}})
 
     This returns the rank of a specific space in a given q-matroid.
     
     We require for this function, the Independent-and Dependent-Spaces, because it's computational faster.
 """
-function Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
-    Field = QM.field
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of in-func. varible `Field`
+# (3) declaring `indeps` and `deps` varibales to optional arguments
+
+function Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, indeps=nothing::Union{Nothing,AbstractVector{fpMatrix}}, deps=nothing::Union{Nothing,AbstractVector{fpMatrix}})
+
+    # Check if the optional arguments are used
+    if isnothing(indeps) && isnothing(deps)
+        Indeps = Q_Matroid_Indepentspaces(QM)
+        Deps = Q_Matroid_Indepentspaces(QM)
+    else
+        Indeps = indeps
+        Deps = deps
+    end
 
     # Convert a space not in rref in rref space
-    r,New_space = rref(Space)
+    New_space = rref(Space)[2]
 
-    New_space_set = subspace_set(Field,New_space)
+    New_space_set = subspace_set(New_space)
     indep_spaces_in_New_Space = []
 
     if New_space in Indeps
-        return subspace_dim(Field,New_space)
+        return rank(New_space)
 
     elseif New_space in Deps
         for indep_space in Indeps
-            if issubset(subspace_set(Field,indep_space),New_space_set)
+            if issubset(subspace_set(indep_space),New_space_set)
                 push!(indep_spaces_in_New_Space,indep_space)
             end
         end
 
-        if subspace_dim(Field,New_space) == 1
+        if rank(New_space) == 1
             return 0
         else
             if length(indep_spaces_in_New_Space) == 1
                 return 0
             else
-                return maximum(y->subspace_dim(Field,y),indep_spaces_in_New_Space)
+                return maximum(y->rank(y),indep_spaces_in_New_Space)
             end
         end
     end

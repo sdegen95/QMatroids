@@ -22,6 +22,8 @@ include("./q_properties.jl")
 
     This counts the number of subspaces of a vectorspace over a finite field of size `q`.
 """
+# Changes to old version:
+# None
 function q_binomcoeff(q::Oscar.IntegerUnion, n::Oscar.IntegerUnion, k::Oscar.IntegerUnion)
     denom = 1
     num = 1
@@ -88,6 +90,9 @@ end
 
     Returns all subspaces of the fixed ambient dimension `n`.
 """
+# Changes to old version:
+# None
+
 function all_subspaces(field::Nemo.fpField, n::Oscar.IntegerUnion)
     all_subs = AbstractVector{fpMatrix}([])
 
@@ -109,6 +114,9 @@ end
 
     Returns the dimension of the `space` in an ambient vectorspace.
 """
+# Changes to old version:
+# delete this function
+
 function subspace_dim(field::Nemo.fpField, space::fpMatrix)
     dim = ncols(space)
     ms = matrix_space(field,1,dim)
@@ -195,20 +203,27 @@ end
 
 
 @doc raw"""
-    subspace_set(field::Nemo.fpField, space::fpMatrix)
+    subspace_set(space::fpMatrix)
 
     Returns the set of elements of the subspaces `space` sitting in an ambient vectorspace.
 """
-function subspace_set(field::Nemo.fpField, space::fpMatrix)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function subspace_set(space::fpMatrix)
+    field = base_ring(space)
+    char = Int(characteristic(field)) 
+    sub_dim = rank(space)
+    dim = ncols(space)
+
     subs_set = Set{fpMatrix}([])
     one_dims = []
-    dim = subspace_dim(field,space)
-    char = Int(characteristic(field)) 
     
-    if dim != 0
-        # Create all vec of size dim 
-        for i in range(0,char^(dim)-1)
-            array = [digits(i,base=char,pad=dim)]
+    if sub_dim != 0
+        # Create all vec of size sub_dim 
+        for i in range(0,char^(sub_dim)-1)
+            array = [digits(i,base=char,pad=sub_dim)]
             vec = matrix(field,array)
             push!(one_dims,vec)
         end
@@ -218,8 +233,8 @@ function subspace_set(field::Nemo.fpField, space::fpMatrix)
             push!(subs_set,prod)
         end
 
-    elseif dim == 0
-        Ms = matrix_space(field,1,ncols(space))
+    elseif sub_dim == 0
+        Ms = matrix_space(field,1,dim)
         zero_vec = Ms(0)
         push!(subs_set,zero_vec)
     end
@@ -230,35 +245,41 @@ end
 ################################################################################
 
 @doc raw"""
-    subspaces_fix_space(field::Nemo.fpField, space::fpMatrix)
+    subspaces_fix_space(space::fpMatrix)
 
     Returns all subspaces of fixed `space` sitting in an ambient vectorspace.
 """
-function subspaces_fix_space(field::Nemo.fpField, space::fpMatrix)
-    Ms = matrix_space(field,1,ncols(space))
-    zero_vec = Ms(0)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+# (3) changed to if-else-statement s.t. the `one_dims` will only be computeted if `0 < sub_dim`
+
+function subspaces_fix_space(space::fpMatrix)
+    field = base_ring(space)
+    sub_dim = rank(space)
+    zero_vec = matrix_space(field,1,ncols(space))(0)
+
     collection_subspaces = AbstractVector{AbstractVector{fpMatrix}}([])
     zero_spaces = AbstractVector{fpMatrix}([zero_vec])
     one_spaces = AbstractVector{fpMatrix}([])
-    dim = subspace_dim(field,space)
 
-    # Create 1-spaces
-    S = subspace_set(field,space)
-    for x in S
-        if x != zero_vec
-            new_x = rref(x)[2]
-            push!(one_spaces,new_x)
-        end
-    end
-    one_spaces = unique(one_spaces)
-
-    if dim == 0
+    if sub_dim == 0
         push!(collection_subspaces,zero_spaces)
-    elseif dim != 0
+    elseif sub_dim != 0
+         # Create 1-spaces
+        S = subspace_set(space)
+        for x in S
+            if x != zero_vec
+                new_x = rref(x)[2]
+                push!(one_spaces,new_x)
+            end
+        end
+        one_spaces = unique(one_spaces)
+
         push!(collection_subspaces,zero_spaces)
         push!(collection_subspaces,one_spaces)
-        if dim >= 2
-            for i in range(2,dim)
+        if sub_dim >= 2
+            for i in range(2,sub_dim)
                 i_spaces = AbstractVector{fpMatrix}([])
                 for combi in combinations(one_spaces,i)
                     mat = vcat(combi)
@@ -418,13 +439,17 @@ end
 
 
 @doc raw"""
-    codim_one_subs(field::Nemo.fpField, space::fpMatrix)
+    codim_one_subs(space::fpMatrix)
 
     Returns all codim. one subspaces of a fix `space`. For the zero space, it will return an empty list.
 """
-function codim_one_subs(field::Nemo.fpField, space::fpMatrix)
-    collection_of_subs = subspaces_fix_space(field,space)
-    dim = subspace_dim(field,space)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function codim_one_subs(space::fpMatrix)
+    collection_of_subs = subspaces_fix_space(space)
+    dim = rank(space)
 
     if dim != 0
         return collection_of_subs[dim]
@@ -436,13 +461,17 @@ end
 
 
 @doc raw"""
-    dim_one_subs(field::Nemo.fpField, space::fpMatrix)
+    dim_one_subs(space::fpMatrix)
 
     Returns all dim. one subspaces of a fix `space`. For the zero space, it will return an empty list and for one-space it will return the space itself.
 """
-function  dim_one_subs(field::Nemo.fpField, space::fpMatrix)
-    collection_of_subs = subspaces_fix_space(field,space)
-    dim = subspace_dim(field,space)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable#
+
+function  dim_one_subs(space::fpMatrix)
+    collection_of_subs = subspaces_fix_space(space)
+    dim = rank(space)
 
     if dim == 0
         return AbstractVector{fpMatrix}([])
