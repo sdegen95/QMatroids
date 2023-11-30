@@ -133,13 +133,16 @@ end
 
 
 @doc raw"""
-    sum_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+    sum_vs(space_1::fpMatrix, space_2::fpMatrix)
 
     Returns the vs-sum of the two subspaces `space_1` `space_2` sitting in an ambient vectorspace.
 """
-function sum_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
-    Ms = matrix_space(field,1,ncols(space_1))
-    zero_vec = Ms(0)
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function sum_vs(space_1::fpMatrix, space_2::fpMatrix)
+    field = base_ring(space_1)
+    zero_vec = matrix_space(field,1,ncols(space_1))(0)
 
     New_mat = vcat(space_1,space_2)
     r,rref_mat = rref(New_mat)
@@ -157,6 +160,27 @@ function sum_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
         return zero_vec
     else
         return cleaned_mat
+    end
+end
+
+
+@doc raw"""
+    sum_vsV2(space_1::fpMatrix, space_2::fpMatrix)
+"""
+# Completely new version
+
+function sum_vsV2(space_1::fpMatrix, space_2::fpMatrix)
+    field = base_ring(space_1)
+    zero_mat = matrix_space(field,ncols(space_1),ncols(space_1))(0)
+    zero_vec = zero_mat[1,:]
+
+    New_mat = vcat(space_1,space_2)
+    r,rref_mat = rref(New_mat)
+
+    if rref_mat == zero_mat
+        return zero_vec
+    else
+        return rref_mat[1:r,:]
     end
 end
 ################################################################################

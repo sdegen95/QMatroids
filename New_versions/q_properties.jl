@@ -19,14 +19,14 @@ include("./q_matroids.jl")
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
 # (2) using `base_ring`-func. instead of old struct `field`-attribute
+# (3) got rid of in-func. varible `Field`
 
 function Q_Matroid_Indepentspaces(QM::Q_Matroid)
     Bases = QM.bases
-    Field = base_ring(Bases[1])
 
     q_mat_indep_spaces = AbstractVector{fpMatrix}([])
     for basis in Bases
-        basis_subspaces = subspaces_fix_space(Field,basis)
+        basis_subspaces = subspaces_fix_space(basis)
         for arr in basis_subspaces
             for elm in arr
                 push!(q_mat_indep_spaces,elm)
@@ -164,8 +164,11 @@ end
 
     This returns the circuits of the q-matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of in-func. varible `Field`
+
 function Q_Matroid_Circuits(QM::Q_Matroid)
-    Field = QM.field
     Indeps = Q_Matroid_Indepentspaces(QM)
     Deps = Q_Matroid_Depentspaces(QM)
     q_mat_circuits = AbstractVector{fpMatrix}([])
@@ -173,8 +176,8 @@ function Q_Matroid_Circuits(QM::Q_Matroid)
 
     for dep_space in Deps
         loop_breaker = true
-        arrays_subs = subspaces_fix_space(Field,dep_space)
-        deleteat!(arrays_subs,subspace_dim(Field,dep_space)+1)
+        arrays_subs = subspaces_fix_space(dep_space)
+        deleteat!(arrays_subs, rank(dep_space)+1)
         for array in arrays_subs
             if loop_breaker == false
                 break
@@ -199,7 +202,33 @@ function Q_Matroid_Circuits(QM::Q_Matroid)
     end
 
     return unique(q_mat_circuits)
+
 end
+
+
+@doc raw"""
+    Q_Matroid_CircuitsV2(QM::Q_Matroid)
+"""
+# Completely new version
+
+function Q_Matroid_CircuitsV2(QM::Q_Matroid)
+    Indeps = Q_Matroid_Indepentspaces(QM)
+    Deps = Q_Matroid_Depentspaces(QM)
+    q_mat_circuits = AbstractVector{fpMatrix}([])
+
+    for dep_space in Deps
+        hps = codim_one_subs(dep_space)
+        if issubset(hps,Indeps)
+            push!(q_mat_circuits,dep_space)
+        else
+            continue
+        end 
+    end
+
+    return unique(q_mat_circuits)
+
+end
+
 ################################################################################
 
 
@@ -208,15 +237,18 @@ end
 
     This returns the circuits of the q-matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of in-func. varible `Field`
+
 function Is_paving_q_matroid(QM::Q_Matroid)
-    Bases = QM.bases
-    Field = QM.field
+    q_rank = rank(QM.bases[1])
+
     right_ones = []
-    q_rank = subspace_dim(Field, Bases[1])
     Circuits = Q_Matroid_Circuits(QM)
 
     for circ in Circuits
-        if  subspace_dim(Field,circ) >= q_rank
+        if  rank(circ) >= q_rank
             push!(right_ones,circ)
         end
     end
