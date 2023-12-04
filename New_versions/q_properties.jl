@@ -262,6 +262,56 @@ function Is_paving_q_matroid(QM::Q_Matroid)
 end
 ################################################################################
 
+@doc raw"""
+    Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
+
+    Returns the closure w.r.t. of the given `space` in the terms of ranks coming from the given q-Matroid.
+"""
+function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
+    Field = QM.field
+    dim = ncols(QM.bases[1])
+    zero_mat = matrix_space(Field,1,dim)(1)
+    zero_vec = zero_mat[1,:]
+
+    # Compute Indeps and Deps for rank function
+    Indeps = Q_Matroid_Indepentspaces(QM)
+    Deps = Q_Matroid_Depentspaces(QM)
+
+    # Compute current rank of given space
+    space_rank = Q_Matroid_Ranks(QM,space,Indeps,Deps)
+
+    # Compute list of all one-spaces
+    all_ones = subspaces_fix_dim(Field,1,dim)
+    all_ones_of_space = dim_one_subs(Field,space)
+
+    right_ones = AbstractVector{fpMatrix}([])
+    for elm in all_ones
+        if !(elm in all_ones_of_space)
+            sum = sum_vs(Field,space,elm)
+            if Q_Matroid_Ranks(QM,sum,Indeps,Deps) == space_rank
+                push!(right_ones,elm)
+            else
+                continue
+            end
+        end
+    end
+    
+    # Push the space itself in the right_ones list
+    push!(right_ones,space)
+
+    # Sum the 
+    New_mat = vcat(right_ones)
+    r,rref_mat = rref(New_mat)
+
+    if rref_mat == zero_mat
+        return zero_vec
+    else
+        return rref_mat[1:r,:]
+    end
+
+end
+################################################################################
+
 
 @doc raw"""
     Q_Matroid_Flats(QM::Q_Matroid)
@@ -332,6 +382,23 @@ function Q_Matroid_Hyperplanes(QM::Q_Matroid)
     end
     
     return q_hyperplanes
+
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_CyclicFlats(QM::Q_Matroid)
+
+    This returns the CyclicFlats, i.e. flats that are open spaces as well, of the q-matroid.
+"""
+function Q_Matroid_CyclicFlats(QM::Q_Matroid)
+    flats = Q_Matroid_Flats(QM)
+    openspaces = Q_Matroid_Openspaces(QM)
+
+    q_cyclic_flats = intersect(flats,openspaces)
+
+    return q_cyclic_flats
 
 end
 ################################################################################
