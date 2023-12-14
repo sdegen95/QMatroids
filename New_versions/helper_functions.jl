@@ -326,17 +326,23 @@ end
 
 
 @doc raw"""
-    containments_fix_space(field::Nemo.fpField, space::fpMatrix)
+    containments_fix_space(space::fpMatrix)
 
     Returns all spaces that contains a fixed `space` sitting in an ambient vectorspace.
 """
-function containments_fix_space(field::Nemo.fpField, space::fpMatrix)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function containments_fix_space(space::fpMatrix)
+    field = base_ring(space)
+
     all_higher_spaces = []
     spaces_containing_space = AbstractVector{fpMatrix}([])
     dim = ncols(space)
-    sub_dim = subspace_dim(field,space)
+    sub_dim = rank(space)
 
-    my_space_set = subspace_set(field,space)
+    my_space_set = subspace_set(space)
 
     # Push in the space it self
     push!(spaces_containing_space,space)
@@ -345,7 +351,7 @@ function containments_fix_space(field::Nemo.fpField, space::fpMatrix)
     for i in range(sub_dim+1,dim)
         subs = subspaces_fix_dim(field,i,dim)
         for sub in subs
-            push!(all_higher_spaces,[sub,subspace_set(field,sub)])
+            push!(all_higher_spaces,[sub,subspace_set(sub)])
         end
     end
 
@@ -491,7 +497,7 @@ end
 """
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
-# (2) got rid of `field`-variable#
+# (2) got rid of `field`-variable
 
 function  dim_one_subs(space::fpMatrix)
     collection_of_subs = subspaces_fix_space(space)
@@ -668,19 +674,23 @@ end
 
 
 @doc raw"""
-    Möbius_func_subspace_lat(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+    Möbius_func_subspace_lat(space_1::fpMatrix, space_2::fpMatrix)
 
     Returns the value of the Möbius-function, of the subspaces lattice, of the two fixed subspaces `space_1` and `space_2`.
 """
-function Möbius_func_subspace_lat(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
 
+function Möbius_func_subspace_lat(space_1::fpMatrix, space_2::fpMatrix)
+    field = base_ring(space_1)
     char = Int(characteristic(field))
 
-    dim_sub_1 = subspace_dim(field,space_1)
-    dim_sub_2 = subspace_dim(field,space_2)
+    dim_sub_1 = rank(space_1)
+    dim_sub_2 = rank(space_2)
 
     diff = dim_sub_2-dim_sub_1
-    sub_contained_in = containments_fix_space(field,space_1)
+    sub_contained_in = containments_fix_space(space_1)
 
     if space_2 in sub_contained_in
         return (-1)^(diff)*char^(binomial(diff,2))
@@ -692,17 +702,23 @@ end
 
 
 @doc raw"""
-    Orthogonal_complement(field::Nemo.fpField, space::fpMatrix)
+    Orthogonal_complement(space::fpMatrix)
 
     Returns the orthogonal complement of the `space` in a given ambient space, w.r.t. the standard dor product. 
 """
-function orthogonal_complement(field::Nemo.fpField, A::fpMatrix)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+# (3) got rid of the `matrix_space`
+
+function orthogonal_complement(A::fpMatrix)
+    field = base_ring(A)
     n = ncols(A)
-    subdim = subspace_dim(field,A)
+    subdim = rank(A)
+
     one_spaces = subspaces_fix_dim(field,1,n)
-    MS = matrix_space(field,n,n)
-    one_mat = MS(1)
-    zero_vec = MS(0)[1,:]
+    one_mat = subspaces_fix_dim(field,n,n)[1]
+    zero_vec = subspaces_fix_dim(field,0,n)[1]
 
     if A == zero_vec
         return AbstractVector{fpMatrix}([one_mat])
@@ -747,5 +763,17 @@ function orthogonal_complement(field::Nemo.fpField, A::fpMatrix)
 
         return orth_comp_as_matrix
     end
+end
+
+
+@doc raw"""
+    Orthogonal_complementV2(space::fpMatrix)
+"""
+# Completely new version 
+
+function orthogonal_complementV2(A::fpMatrix)
+    r, rref_ker_A = rref(transpose(right_kernel(A)[2]))
+
+    return [rref_ker_A[1:r,:]]
 end
 ################################################################################

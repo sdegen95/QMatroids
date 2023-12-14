@@ -240,12 +240,13 @@ end
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
 # (2) got rid of in-func. varible `Field`
+# (3) using now `Q_Matroid_CircuitsV2`
 
 function Is_paving_q_matroid(QM::Q_Matroid)
     q_rank = rank(QM.bases[1])
 
     right_ones = []
-    Circuits = Q_Matroid_Circuits(QM)
+    Circuits = Q_Matroid_CircuitsV2(QM)
 
     for circ in Circuits
         if  rank(circ) >= q_rank
@@ -318,30 +319,39 @@ end
 
     This returns the flats of the q-matroid.
 """
+# Changes to old version:
+    # (1) using now `sum_vsV2`
+    # (2) added condition that we not looking at base-spaces anymore
+
 function Q_Matroid_Flats(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
+    n = ncols(Bases[1])
+
     indeps = Q_Matroid_Indepentspaces(QM)
     deps =  Q_Matroid_Depentspaces(QM)
-
-    n = ncols(Bases[1])
     one_spaces = subspaces_fix_dim(Field,1,n)
     all_spaces = all_subspaces(Field,n)
+
     not_correct_spaces = []
     q_matroid_flats = AbstractVector{fpMatrix}([])
 
     for space in all_spaces
-        one_subs = dim_one_subs(Field,space)
-        for one_space in one_spaces
-            if !(one_space in one_subs)
-                sum = sum_vs(Field,space,one_space)
-                if  Q_Matroid_Ranks(QM,sum,indeps,deps) > Q_Matroid_Ranks(QM,space,indeps,deps)
-                    continue
-                else
-                    push!(not_correct_spaces,space)
-                    break
+        if !(space in Bases)
+            one_subs = dim_one_subs(space)
+            for one_space in one_spaces
+                if !(one_space in one_subs)
+                    sum = sum_vsV2(space,one_space)
+                    if  Q_Matroid_Ranks(QM,sum,indeps,deps) > Q_Matroid_Ranks(QM,space,indeps,deps)
+                        continue
+                    else
+                        push!(not_correct_spaces,space)
+                        break
+                    end
                 end
             end
+        else
+            push!(not_correct_spaces,space)
         end
     end
 
@@ -361,18 +371,19 @@ end
 
     This returns the Hyperplanes, i.e. maximal proper flats, of the q-matroid.
 """
+# Changes to old version:
+# (1) got rid of in-func. varible `Field`
+# (2) using `QM.groundspace` instead of creating a `matrix_space`
+
 function Q_Matroid_Hyperplanes(QM::Q_Matroid)
-    Field = QM.field
-    dim = ncols(QM.bases[1])
-    ms = matrix_space(Field,dim,dim)
-    id_mat = ms(1)
+    id_mat = QM.groundspace
 
     flats = Q_Matroid_Flats(QM)
     cleaned_flats = [space for space in flats if space != id_mat]
     q_hyperplanes = AbstractVector{fpMatrix}([])
 
     for elm in cleaned_flats
-        cont_list = [x for x in containments_fix_space(Field,elm) if x != elm]
+        cont_list = [x for x in containments_fix_space(elm) if x != elm]
         inters = intersect(cont_list,cleaned_flats)
         if inters == []
             push!(q_hyperplanes,elm)
@@ -392,6 +403,9 @@ end
 
     This returns the CyclicFlats, i.e. flats that are open spaces as well, of the q-matroid.
 """
+# Changes to old version:
+# None
+
 function Q_Matroid_CyclicFlats(QM::Q_Matroid)
     flats = Q_Matroid_Flats(QM)
     openspaces = Q_Matroid_Openspaces(QM)
@@ -409,10 +423,13 @@ end
 
     This returns the Spanning-spaces, i.e. all spaces which have full rank, of the q-matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Q_Matroid_Spanningspaces(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
-    q_rank = subspace_dim(Field,Bases[1]) 
+    Field = base_ring(QM.groundspace)
+    q_rank = rank(Bases[1]) 
     dim =  ncols(Bases[1])
     indeps = Q_Matroid_Indepentspaces(QM)
     deps = Q_Matroid_Depentspaces(QM)
@@ -439,8 +456,11 @@ end
 
     This returns the Nom-spanning-spaces of the q-matroid.
 """
+# Changes to old version:
+# None
+
 function Q_Matroid_Non_Spanningspaces(QM::Q_Matroid)
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     dim = ncols(QM.bases[1])
     all_subs = all_subspaces(Field,dim)
     span_spaces = Q_Matroid_Spanningspaces(QM)
@@ -465,15 +485,17 @@ end
 
     This returns the open-spaces, i.e. subspaces which are sums of circtuits, of the q-matroid.
 """
+# Changes to old version:
+# (1) got rid of in-func. varible `Field`
+
 function Q_Matroid_Openspaces(QM::Q_Matroid)
-    Field = QM.field
     dual = Dual_Q_Matroid(QM)
     flats = Q_Matroid_Flats(dual)
 
     Openspaces = AbstractVector{fpMatrix}([])
 
     for space in flats
-        dual_flat = orthogonal_complement(Field,space)[1]
+        dual_flat = orthogonal_complement(space)[1]
         push!(Openspaces,dual_flat)
     end
 
@@ -1046,17 +1068,20 @@ end
 
     Returns the dual Q-Matroid for the given Q-Matroid w.r.t. the standard dot product. 
 """
+# Changes to old version:
+# (1) got rid of in-func. varible `Field`
+# (2) instatiated the new q-matroid via the groudspace
+
 function Dual_Q_Matroid(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
     bases_dual_q_matroid = AbstractVector{fpMatrix}([])
 
     for basis in Bases
-        dual_basis = orthogonal_complement(Field,basis)[1]
+        dual_basis = orthogonal_complement(basis)[1]
         push!(bases_dual_q_matroid,dual_basis)
     end
 
-    Dual_QM = Q_Matroid(Field,bases_dual_q_matroid)
+    Dual_QM = Q_Matroid(QM.groundspace,bases_dual_q_matroid)
 
     return Dual_QM
 end
