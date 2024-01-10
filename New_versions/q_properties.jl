@@ -1337,8 +1337,6 @@ end
     Returns the Q-Higgs Lift of the given q-matroids.
 
     Here it's required that `QM1` is a q-quotient of `QM2`
-        
-    
 """
 function Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
     Bases_1 = QM1.bases

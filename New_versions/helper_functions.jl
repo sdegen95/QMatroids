@@ -191,13 +191,15 @@ end
 
     Returns the vs-intersection of the two subspaces `space_1` `space_2` sitting in an ambient vectorspace.
 """
-function inters_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
-    dim = ncols(space_1)
-    ms = matrix_space(field,1,dim)
-    zero_vec = ms(0)
+# Changes to old version:
+# (1) got rid of `field`-variable
+# (2) using rank instead of `subspace_dim`-func
+# (3) got rid of the `matrix_space`, `dim` and `zero_vec` in-func. variables
 
-    subs_1 = subspaces_fix_space(field,space_1)
-    subs_2 = subspaces_fix_space(field,space_2)
+function inters_vs(space_1::fpMatrix, space_2::fpMatrix)
+
+    subs_1 = subspaces_fix_space(space_1)
+    subs_2 = subspaces_fix_space(space_2)
 
     subs_list_1 = []
     subs_list_2 = []
@@ -215,11 +217,11 @@ function inters_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
         end
     end
 
-    # Cumpute intersecton of subs_list_1, subs_list_2
+    # Compute intersecton of subs_list_1, subs_list_2
     inters_list = intersect(subs_list_1,subs_list_2)
 
     # Choose the element with maximal dim in that List
-    inters = AbstractVector{fpMatrix}([y for y in inters_list[findall(x->subspace_dim(field,x)==maximum(z->subspace_dim(field,z),inters_list),inters_list)]])
+    inters = AbstractVector{fpMatrix}([y for y in inters_list[findall(x->rank(x)==maximum(z->rank(z),inters_list),inters_list)]])
 
     return inters
 end
@@ -290,7 +292,7 @@ function subspaces_fix_space(space::fpMatrix)
     if sub_dim == 0
         push!(collection_subspaces,zero_spaces)
     elseif sub_dim != 0
-         # Create 1-spaces
+        # Create 1-spaces
         S = subspace_set(space)
         for x in S
             if x != zero_vec
@@ -376,6 +378,9 @@ end
 
     If you put in an number for the choice, then the function will choose `choice`-many random elements for the field and return all possible matrices with those elements as entries.
 """
+# Changes to old version:
+# None
+
 function  matrix_collec(field::fqPolyRepField, rows::Oscar.IntegerUnion, cols::Oscar.IntegerUnion, choice=nothing::Union{Int,Nothing})
     char = characteristic(field)
     gen = Oscar.gen(field)
@@ -517,21 +522,25 @@ end
 
     Returns all possible diamonds of a collection of spaces living in an given ambient space.
 """
-function diamond_list(field::Nemo.fpField, spaces::AbstractVector{fpMatrix})
+# Changes to old version:
+# (1) got rid of `field`-variable
+# (2) using rank instead of `subspace_dim`-func
+
+function diamond_list(spaces::AbstractVector{fpMatrix})
     info_dict = OrderedDict([])
     diamonds = AbstractVector{AbstractVector{fpMatrix}}([])
-    spaces = sort(spaces, by = x->subspace_dim(field,x))
+    spaces = sort(spaces, by = x->rank(x))
 
     # Fill info_dict with all necesssary information: [space, dim, space containment, space_subspaces, set_subspace]
     for (id,space) in enumerate(spaces)
         all_subs = AbstractVector{fpMatrix}([])
-        subs = subspaces_fix_space(field,space)
+        subs = subspaces_fix_space(space)
         for sub in subs
             for space in sub
                 push!(all_subs,space)
             end
         end
-        merge!(info_dict,Dict(id=>[space,subspace_dim(field,space),containments_fix_space(field,space),all_subs,subspace_set(field,space)]))
+        merge!(info_dict,Dict(id=>[space,rank(space),containments_fix_space(space),all_subs,subspace_set(space)]))
     end
 
     # Create all possible diamonds from that list
@@ -576,21 +585,25 @@ end
 
     The number `k` has to be greater or equal to 2.
 """
-function k_interval(field::Nemo.fpField, spaces::AbstractVector{fpMatrix}, k::Oscar.IntegerUnion)
+# Changes to old version:
+# (1) got rid of `field`-variable
+# (2) using rank instead of `subspace_dim`-func
+
+function k_interval(spaces::AbstractVector{fpMatrix}, k::Oscar.IntegerUnion)
     info_dict = OrderedDict([])
     diamonds = AbstractVector{AbstractVector{fpMatrix}}([])
-    spaces = sort(spaces, by = x->subspace_dim(field,x))
+    spaces = sort(spaces, by = x->rank(x))
 
     # Fill info_dict with all necesssary information: [space, dim, space containment, space_subspaces, set_subspace]
     for (id,space) in enumerate(spaces)
         all_subs = AbstractVector{fpMatrix}([])
-        subs = subspaces_fix_space(field,space)
+        subs = subspaces_fix_space(space)
         for sub in subs
             for space in sub
                 push!(all_subs,space)
             end
         end
-        merge!(info_dict,Dict(id=>[space,subspace_dim(field,space),containments_fix_space(field,space),all_subs,subspace_set(field,space)]))
+        merge!(info_dict,Dict(id=>[space,rank(space),containments_fix_space(space),all_subs,subspace_set(space)]))
     end
 
     # Create all possible diamonds from that list
@@ -636,7 +649,11 @@ end
     
     Here the standard embedding are used, meaning we add a 0 in the specified position for every vector of the original space.
 """
-function standard_embedding_higher_dim(field::Nemo.fpField, spaces::AbstractVector{fpMatrix}, coord::Oscar.IntegerUnion)
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function standard_embedding_higher_dim(spaces::AbstractVector{fpMatrix}, coord::Oscar.IntegerUnion)
+    field = base_ring(spaces[1])
     new_dim = ncols(spaces[1]) + 1
     old_dim = ncols(spaces[1])
     helper_ms = matrix_space(field,old_dim,old_dim)
