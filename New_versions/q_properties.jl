@@ -268,6 +268,9 @@ end
 
     Returns the closure w.r.t. of the given `space` in the terms of ranks coming from the given q-Matroid.
 """
+# Changes to old version:
+# None
+
 function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
     Field = QM.field
     dim = ncols(QM.bases[1])
@@ -283,12 +286,12 @@ function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
 
     # Compute list of all one-spaces
     all_ones = subspaces_fix_dim(Field,1,dim)
-    all_ones_of_space = dim_one_subs(Field,space)
+    all_ones_of_space = dim_one_subs(space)
 
     right_ones = AbstractVector{fpMatrix}([])
     for elm in all_ones
         if !(elm in all_ones_of_space)
-            sum = sum_vs(Field,space,elm)
+            sum = sum_vs(space,elm)
             if Q_Matroid_Ranks(QM,sum,Indeps,Deps) == space_rank
                 push!(right_ones,elm)
             else
@@ -514,9 +517,13 @@ end
 
     For `show`-attribute you have to set "yes" or "no", telling the function to plot the graph or not.  
 """
+# Changes to old version:
+# (1) got rid of in-func. varible `Field`
+# (2) using rank instead of `subspace_dim`-func
+
 function Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix}, show::String)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(Bases[1])
     char = Int(characteristic(Field))
     num_nodes = 0
     node_pos_x = Array{Int64}([])
@@ -541,11 +548,11 @@ function Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps
     end
 
     # Create the labels
-    all_subs = sort(all_subspaces(Field,dim),by = z->subspace_dim(Field,z))
+    all_subs = sort(all_subspaces(Field,dim),by = z->rank(z))
     
     for (id,elm) in enumerate(all_subs)
         push!(nodelabel,elm)
-        merge!(nodelabel_as_array,OrderedDict(id=>[elm,subspace_set(Field,elm),Q_Matroid_Ranks(QM,elm,Indeps,Deps)]))
+        merge!(nodelabel_as_array,OrderedDict(id=>[elm,subspace_set(elm),Q_Matroid_Ranks(QM,elm,Indeps,Deps)]))
     end
 
     G = SimpleGraph(num_nodes)
@@ -558,7 +565,7 @@ function Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps
     #Create the edges
     for pair in combinations(helper_list,2)
         if issubset(pair[1][2][2],pair[2][2][2]) || issubset(pair[2][2][2],pair[1][2][2])
-            if subspace_dim(Field,pair[1][2][1]) + 1 == subspace_dim(Field,pair[2][2][1]) || subspace_dim(Field,pair[2][2][1]) + 1 == subspace_dim(Field,pair[1][2][1])  
+            if rank(pair[1][2][1]) + 1 == rank(pair[2][2][1]) || rank(pair[2][2][1]) + 1 == rank(pair[1][2][1])  
                 if pair[2][2][3] == pair[1][2][3] + 1 || pair[1][2][3] == pair[2][2][3] + 1
                     Graphs.add_edge!(G,pair[1][1],pair[2][1])
                 end
@@ -575,6 +582,55 @@ function Q_Matroid_lattice(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps
     end
     
 end
+
+
+@doc raw"""
+    Q_Matroid_latticeV2(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix}, show::String)
+"""
+# Oscar Version
+
+function Q_Matroid_latticeV2(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
+    Bases = QM.bases
+    Field = base_ring(Bases[1])
+    char = Int(characteristic(Field))
+    num_nodes = 0
+
+    nodelabel_as_array=OrderedDict([])
+    dim = ncols(Bases[1])
+
+    # Create the nodes
+    for i in range(0,dim)
+        num_nodes += q_binomcoeff(char,dim,i)
+    end
+
+    # Create the labels
+    all_subs = sort(all_subspaces(Field,dim),by = z->rank(z))
+    
+    for (id,elm) in enumerate(all_subs)
+        merge!(nodelabel_as_array,OrderedDict(id=>[elm,subspace_set(elm),Q_Matroid_Ranks(QM,elm,Indeps,Deps)]))
+    end
+
+    G = Oscar.Graph{Undirected}(num_nodes)
+
+    helper_list = []
+    for (key,value) in nodelabel_as_array
+        push!(helper_list,((key,value)))
+    end
+
+    # Create the edges
+    for pair in combinations(helper_list,2)
+        if issubset(pair[1][2][2],pair[2][2][2]) || issubset(pair[2][2][2],pair[1][2][2])
+            if rank(pair[1][2][1]) + 1 == rank(pair[2][2][1]) || rank(pair[2][2][1]) + 1 == rank(pair[1][2][1])  
+                if pair[2][2][3] == pair[1][2][3] + 1 || pair[1][2][3] == pair[2][2][3] + 1
+                    Oscar.add_edge!(G,pair[1][1],pair[2][1])
+                end
+            end
+        end
+    end
+
+    return G
+    
+end
 ################################################################################
 
 
@@ -585,6 +641,9 @@ end
     
     Here we use the underlying q-matroid lattice and check if the graph are isomorphic. 
 """
+# Changes to old version:
+# None
+
 function Are_isom_q_matroids(QM1::Q_Matroid, QM2::Q_Matroid)
     indeps_1 = Q_Matroid_Indepentspaces(QM1) 
     deps_1 = Q_Matroid_Depentspaces(QM1)
@@ -600,6 +659,9 @@ end
 @doc raw"""
     Are_isom_q_matroidsV2(QM1::Q_Matroid, QM2::Q_Matroid, lats=nothing::Union{Nothing,AbstractVector{SimpleGraph}}) 
 """
+# Changes to old version:
+# None
+
 function Are_isom_q_matroidsV2(QM1::Q_Matroid, QM2::Q_Matroid, lats=nothing::Union{Nothing,AbstractVector{SimpleGraph}})
     
     if isnothing(lats)
@@ -672,7 +734,10 @@ end
 
     The list is given in the follwing way: (matrix rep.the class, q-mat of the matrix, length of it's bases, num of elm in the isom.-class) 
 """
-function Isom_classes_from_mats(field::fqPolyRepField, list_matrices::AbstractVector{fqPolyRepMatrix})
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function Isom_classes_from_mats(list_matrices::AbstractVector{fqPolyRepMatrix})
     unique_index = 1
     matrices_dict = OrderedDict([])
     key_value_list = []
@@ -680,7 +745,7 @@ function Isom_classes_from_mats(field::fqPolyRepField, list_matrices::AbstractVe
 
     # Create dict
     for (id,matrix) in enumerate(list_matrices)
-        QM = q_matroid_from_matrix(field,matrix)
+        QM = q_matroid_from_matrix(matrix)
         indeps = Q_Matroid_Indepentspaces(QM)
         deps = Q_Matroid_Depentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
@@ -739,7 +804,10 @@ end
 @doc raw"""
     isom_classes_from_matsV2(List_matrices::AbstractVector{fqPolyRepMatrix}) 
 """
-function Isom_classes_from_matsV2(field::fqPolyRepField, list_matrices::AbstractVector{fqPolyRepMatrix})
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function Isom_classes_from_matsV2(list_matrices::AbstractVector{fqPolyRepMatrix})
     unique_index = 1
     matrices_dict = OrderedDict([])
     key_value_list = []
@@ -747,7 +815,7 @@ function Isom_classes_from_matsV2(field::fqPolyRepField, list_matrices::Abstract
 
     # Create dict
     for (id,matrix) in enumerate(list_matrices)
-        QM = q_matroid_from_matrix(field,matrix)
+        QM = q_matroid_from_matrix(matrix)
         indeps = Q_Matroid_Indepentspaces(QM)
         deps = Q_Matroid_Depentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
@@ -823,15 +891,21 @@ end
 
     The list is given in the follwing way: (matrix rep.the class, q-mat of the matrix, length of it's bases, num of elm in the isom.-class) 
 """
-function Isom_classes_from_bases(field::Nemo.fpField, List_bases::AbstractVector{AbstractVector{fpMatrix}})
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function Isom_classes_from_bases(List_bases::AbstractVector{AbstractVector{fpMatrix}})
     unique_index = 1
     Bases_dict = OrderedDict([])
     key_value_list = []
-    list_diff_q_mat = []    
+    list_diff_q_mat = []
+    field = base_ring(List_bases[1][1])
+    dim = ncols(List_bases[1][1])
+    id_mat = matrix_space(field,dim,dim)(1)   
 
     # Create dict
     for (id,elm) in enumerate(List_bases)
-        QM = Q_Matroid(field,elm)
+        QM = Q_Matroid(id_mat,elm)
         indeps = Q_Matroid_Indepentspaces(QM)
         deps = Q_Matroid_Depentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
@@ -887,15 +961,21 @@ end
 @doc raw"""
     isom_classes_from_basesV2(List_bases::AbstractVector{fpMatrix})
 """
-function Isom_classes_from_basesV2(field::Nemo.fpField, List_bases::AbstractVector{AbstractVector{fpMatrix}})
+# Changes to old version:
+# (1) got rid of `field`-variable
+
+function Isom_classes_from_basesV2(List_bases::AbstractVector{AbstractVector{fpMatrix}})
     unique_index = 1
     Bases_dict = OrderedDict([])
     key_value_list = []
-    list_diff_q_mat = []    
+    list_diff_q_mat = []
+    field = base_ring(List_bases[1][1])
+    dim = ncols(List_bases[1][1])
+    id_mat = matrix_space(field,dim,dim)(1)  
 
     # Create dict
     for (id,elm) in enumerate(List_bases)
-        QM = Q_Matroid(field,elm)
+        QM = Q_Matroid(id_mat,elm)
         indeps = Q_Matroid_Indepentspaces(QM)
         deps = Q_Matroid_Depentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
@@ -967,20 +1047,23 @@ end
 
     We require for this function, the Independent-and Dependent-Spaces, because it's computational faster.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Q_Matroid_charpoly(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Deps::AbstractVector{fpMatrix})
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(Bases[1])
     dim = ncols(Bases[1])
 
     # Create polynomial ring over Z
     R,z = polynomial_ring(ZZ,"z")
 
     # create all subspaces
-    all_spaces = sort(all_subspaces(Field,dim), by = x->subspace_dim(Field,x))
+    all_spaces = sort(all_subspaces(Field,dim), by = x->rank(x))
 
     # Compute rank of q-matroid
     #max_space = all_spaces[findall(x-> nrows(x)==dim,all_spaces)][1]
-    q_mat_rank = subspace_dim(Field,Bases[1])
+    q_mat_rank = rank(Bases[1])
 
     # Search for zero_vec
     zero_vec = all_spaces[1]
@@ -990,7 +1073,7 @@ function Q_Matroid_charpoly(QM::Q_Matroid, Indeps::AbstractVector{fpMatrix}, Dep
     
     for space in all_spaces
         diff = q_mat_rank-Q_Matroid_Ranks(QM,space,Indeps,Deps)
-        char_polyn += Möbius_func_subspace_lat(Field,zero_vec,space)*z^(diff)
+        char_polyn += Möbius_func_subspace_lat(zero_vec,space)*z^(diff)
     end
      
     return char_polyn

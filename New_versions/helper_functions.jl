@@ -24,6 +24,7 @@ include("./q_properties.jl")
 """
 # Changes to old version:
 # None
+
 function q_binomcoeff(q::Oscar.IntegerUnion, n::Oscar.IntegerUnion, k::Oscar.IntegerUnion)
     denom = 1
     num = 1
@@ -225,6 +226,26 @@ function inters_vs(space_1::fpMatrix, space_2::fpMatrix)
 
     return inters
 end
+
+
+@doc raw"""
+    inters_vsV2(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+"""
+# Completly new version
+
+function inters_vsV2(space_1::fpMatrix, space_2::fpMatrix)
+    set_space_1 = subspace_set(space_1)
+    set_space_2 = subspace_set(space_2)
+
+    inters = [elm for elm in intersect(set_space_1,set_space_2)]
+    r,new_space= rref(vcat(inters))
+
+    if length(inters) != 1
+        return [new_space[1:r,:]]
+    else
+        return inters
+    end
+end
 ################################################################################
 
 
@@ -367,6 +388,42 @@ function containments_fix_space(space::fpMatrix)
     end
 
     return spaces_containing_space
+end
+
+
+@doc raw"""
+    containments_fix_spaceV2(space::fpMatrix)
+"""
+# Complety new version
+
+function containments_fix_spaceV2(space::fpMatrix)
+    dim = ncols(space)
+    sub_dim = rank(space)
+    field = base_ring(space)
+
+    spaces_containing_space = AbstractVector{fpMatrix}([])
+    one_spaces_space = dim_one_subs(space)
+    all_ones_of_spaces = subspaces_fix_dim(field,1,dim)
+    one_spaces_not_in_space = [elm for elm in all_ones_of_spaces if !(elm in one_spaces_space)]
+
+    # Push the space itself
+    push!(spaces_containing_space,space)
+   
+    # Push higher-dimensional spaces
+    for i in range(1,dim-sub_dim)
+        for combi in combinations(one_spaces_not_in_space,i)
+            new_space = space
+            for elm in combi
+                new_space = sum_vsV2(new_space,elm)
+            end
+            if !(new_space in spaces_containing_space)
+                push!(spaces_containing_space,new_space)
+            end
+        end
+    end
+
+    return spaces_containing_space
+    
 end
 ################################################################################
 
