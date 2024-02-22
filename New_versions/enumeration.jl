@@ -21,18 +21,22 @@ include("./helper_functions.jl")
 
     Note: This is required to speed up the computations in the below enumeration functions.
 """
-function Diamond_prop(field::Nemo.fpField, indeps::AbstractVector{fpMatrix}, deps::AbstractVector{fpMatrix}, all_diams=nothing::Union{Nothing,AbstractVector{AbstractVector{fpMatrix}}})
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function Diamond_prop(indeps::AbstractVector{fpMatrix}, deps::AbstractVector{fpMatrix}, all_diams=nothing::Union{Nothing,AbstractVector{AbstractVector{fpMatrix}}})
     holds = true
 
     # Put all current spaces together in one list
     all_current_spaces = union(indeps,deps)
     
     # Sort them w.r.t to their subspace dimension
-    sort!(all_current_spaces, by = x -> subspace_dim(field,x))
+    sort!(all_current_spaces, by = x -> rank(x))
 
     # Create all possible diamonds
     if isnothing(all_diams)
-        diams = diamond_list(field,all_current_spaces)
+        diams = diamond_list(all_current_spaces)
     else
         # Here we put in all possible diamonds of the vector_space, not only those in the current spaces
         # Check which of all the diamonds of the v.s. is in the current_spaces_list
@@ -46,7 +50,7 @@ function Diamond_prop(field::Nemo.fpField, indeps::AbstractVector{fpMatrix}, dep
 
     # Check if all currently possible diamonds satisfy the one of the four possible options
     for diam in diams
-        sort!(diam, by = x -> subspace_dim(field,x))
+        sort!(diam, by = x -> rank(x))
         overall_count = 0
         if diam[1] in indeps
             # One diamond
@@ -179,7 +183,12 @@ end
 @doc raw"""
     
 """
-function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}})
+    field = base_ring(indeps[1])
     complement_list = []
     new_counter = counter + 1
 
@@ -196,7 +205,7 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     # List all the two spaces containing the current one-space
     two_spaces_containment = []
     for sub in collect(values(lo_dict))[new_counter][2]
-        if subspace_dim(field,sub)==2
+        if rank(sub)==2
             push!(two_spaces_containment,sub)
         end
     end
@@ -229,7 +238,7 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space_2)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     end
@@ -244,7 +253,7 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                             push!(new_indeps_list,space_2)
                         end
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -258,7 +267,7 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space_2 in complement_list
                         push!(new_indeps_list,space_2)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -284,7 +293,7 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space in complement_list
                         push!(new_indeps_list,space)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 else
@@ -297,9 +306,9 @@ function Dim3_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     return options
 end
 
-function Dim3_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField,num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
+function Dim3_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
     # Calculate the neighbors of the current node
-    neighbors = Dim3_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams,field)
+    neighbors = Dim3_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams)
 
     # Insert all neigbours of the current node before the node in the stack list
     if length(neighbors) != 0
@@ -315,25 +324,25 @@ function Dim3_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::A
     for node in stack
         #println(node)
         if node[3] < num_leftovers && length(node[1]) + length(node[2]) < num_all_subs
-            Dim3_LIFO(node,stack,lo_dict,result_list,all_diams,field,num_all_subs,num_leftovers)
+            Dim3_LIFO(node,stack,lo_dict,result_list,all_diams,num_all_subs,num_leftovers)
 
         elseif node[3] == num_leftovers || length(node[1]) + length(node[2]) == num_all_subs
             #println("i'm here")
-            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(field,node[1],"yes")])
+            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(node[1],true)])
         end
     end
 
 end
 
 function Dim3_q_matroid_DFS(QM::Q_Matroid)
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     Init_Indeps = Q_Matroid_Indepentspaces(QM)
     Init_Deps = Q_Matroid_Depentspaces(QM)
 
-    Trans_Indeps = standard_embedding_higher_dim(Field,Init_Indeps,3)
+    Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,3)
 
     if Init_Deps != []
-        Trans_Deps = standard_embedding_higher_dim(Field,Init_Deps,3)
+        Trans_Deps = standard_embedding_higher_dim(Init_Deps,3)
     else
         Trans_Deps = AbstractVector{fpMatrix}([])
     end
@@ -357,7 +366,7 @@ function Dim3_q_matroid_DFS(QM::Q_Matroid)
     # Create all diamonds of the vectorspace
     all_subs = all_subspaces(Field,3)
     Num_all_subs = length(all_subs)
-    all_diams = diamond_list(Field,all_subs)
+    all_diams = diamond_list(all_subs)
 
     # Now we create a dictionary with the leftover 1-spaces
     one_spaces = subspaces_fix_dim(Field,1,3)
@@ -365,7 +374,7 @@ function Dim3_q_matroid_DFS(QM::Q_Matroid)
     for space in one_spaces
         if !(space in Indeps_list)
             if !(space in Deps_list)
-                merge!(LO_dict,Dict(index=>[space,containments_fix_space(Field,space)]))
+                merge!(LO_dict,Dict(index=>[space,containments_fix_space(space)]))
                 index += 1
             end
         end
@@ -383,10 +392,10 @@ function Dim3_q_matroid_DFS(QM::Q_Matroid)
 
     # Looking for a loop in the init_choice, so all it's two spaces are also dependent
     for space in Deps_list
-        if subspace_dim(Field,space) == 1
-            contained_in = containments_fix_space(Field,space)
+        if rank(space) == 1
+            contained_in = containments_fix_space(space)
             for sub in contained_in
-                if subspace_dim(Field,sub) == 2
+                if rank(sub) == 2
                     if !(sub in Deps_list)
                         push!(Deps_list,sub)
                     end
@@ -399,7 +408,7 @@ function Dim3_q_matroid_DFS(QM::Q_Matroid)
     push!(stack,[Indeps_list,Deps_list,counter])
 
     # Create the intial neighbors and start DFS-Algo
-    Dim3_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Field,Num_all_subs,Num_leftovers)
+    Dim3_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Num_all_subs,Num_leftovers)
 
     return unique!(result_list)
 end
@@ -412,7 +421,12 @@ end
 @doc raw"""
     
 """
-function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}})
+    field = base_ring(indeps[1])
     complement_list = []
     new_counter = counter + 1
 
@@ -428,7 +442,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     
     # Get all diams contained in the considered_spaces with out the whole space
     considered_diams = []
-    new_cons_spaces = sort([x for x in considered_spaces if subspace_dim(field,x)!=4],by = y->subspace_dim(field,y))
+    new_cons_spaces = sort([x for x in considered_spaces if rank(x)!=4],by = y->rank(y))
     for elm in all_diams
         if issubset(elm,new_cons_spaces)
             push!(considered_diams,elm)
@@ -439,7 +453,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     # List all the two spaces containing the current one-space
     two_spaces_containment = []
     for sub in collect(values(lo_dict))[new_counter][2]
-        if subspace_dim(field,sub)==2
+        if rank(sub)==2
             push!(two_spaces_containment,sub)
         end
     end
@@ -472,7 +486,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space_2)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     end
@@ -487,7 +501,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                             push!(new_indeps_list,space_2)
                         end
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -501,7 +515,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space_2 in complement_list
                         push!(new_indeps_list,space_2)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -527,7 +541,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space in complement_list
                         push!(new_indeps_list,space)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 else
@@ -539,10 +553,10 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
         elseif i == 4
             if considered_diams != []
                 for diam in considered_diams
-                    sort!(diam,by = x->subspace_dim(field,x))
+                    sort!(diam,by = x->rank(x))
                     twos = []
                     for elm in diam
-                        if subspace_dim(field,elm)==2
+                        if rank(elm)==2
                             push!(twos,elm)
                         end
                     end
@@ -557,7 +571,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     elseif intersect(twos,deps) != []
@@ -573,7 +587,7 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     else
@@ -587,9 +601,9 @@ function Dim4_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     return options
 end
 
-function Dim4_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField,num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
+function Dim4_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
     # Calculate the neighbors of the current node
-    neighbors = Dim4_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams,field)
+    neighbors = Dim4_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams)
 
     # Insert all neigbours of the current node before the node in the stack list
     if length(neighbors) != 0
@@ -605,25 +619,25 @@ function Dim4_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::A
     for node in stack
         #println(node)
         if node[3] < num_leftovers && length(node[1]) + length(node[2]) < num_all_subs
-            Dim4_LIFO(node,stack,lo_dict,result_list,all_diams,field,num_all_subs,num_leftovers)
+            Dim4_LIFO(node,stack,lo_dict,result_list,all_diams,num_all_subs,num_leftovers)
 
         elseif node[3] == num_leftovers || length(node[1]) + length(node[2]) == num_all_subs
             #println("i'm here")
-            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(field,node[1],"yes")])
+            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(node[1],true)])
         end
     end
 
 end
 
 function Dim4_q_matroid_DFS(QM::Q_Matroid)
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     Init_Indeps = Q_Matroid_Indepentspaces(QM)
     Init_Deps = Q_Matroid_Depentspaces(QM)
 
-    Trans_Indeps = standard_embedding_higher_dim(Field,Init_Indeps,4)
+    Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,4)
 
     if Init_Deps != []
-        Trans_Deps = standard_embedding_higher_dim(Field,Init_Deps,4)
+        Trans_Deps = standard_embedding_higher_dim(Init_Deps,4)
     else
         Trans_Deps = AbstractVector{fpMatrix}([])
     end
@@ -647,7 +661,7 @@ function Dim4_q_matroid_DFS(QM::Q_Matroid)
     # Create all diamonds of the vectorspace
     all_subs = all_subspaces(Field,4)
     Num_all_subs = length(all_subs)
-    all_diams = diamond_list(Field,all_subs)
+    all_diams = diamond_list(all_subs)
 
     # Now we create a dictionary with the leftover 1-spaces
     one_spaces = subspaces_fix_dim(Field,1,4)
@@ -655,7 +669,7 @@ function Dim4_q_matroid_DFS(QM::Q_Matroid)
     for space in one_spaces
         if !(space in Indeps_list)
             if !(space in Deps_list)
-                merge!(LO_dict,Dict(index=>[space,containments_fix_space(Field,space)]))
+                merge!(LO_dict,Dict(index=>[space,containments_fix_space(space)]))
                 index += 1
             end
         end
@@ -681,10 +695,10 @@ function Dim4_q_matroid_DFS(QM::Q_Matroid)
 
     # Looking for a loop in the init_choice, so all it's two spaces are also dependent
     for space in Deps_list
-        if subspace_dim(Field,space) == 1
-            contained_in = containments_fix_space(Field,space)
+        if rank(space) == 1
+            contained_in = containments_fix_space(space)
             for sub in contained_in
-                if subspace_dim(Field,sub) == 2
+                if rank(sub) == 2
                     if !(sub in Deps_list)
                         push!(Deps_list,sub)
                     end
@@ -697,7 +711,7 @@ function Dim4_q_matroid_DFS(QM::Q_Matroid)
     push!(stack,[Indeps_list,Deps_list,counter])
 
     # Create the intial neighbors and start DFS-Algo
-    Dim4_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Field,Num_all_subs,Num_leftovers)
+    Dim4_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Num_all_subs,Num_leftovers)
 
     return unique!(result_list)
 end
@@ -710,7 +724,12 @@ end
 @doc raw"""
     
 """
-function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField)
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVector{fpMatrix},counter::Oscar.IntegerUnion,lo_dict::AbstractDict,all_diams::AbstractVector{AbstractVector{fpMatrix}})
+    field = base_ring(indeps[1])
     complement_list = []
     new_counter = counter + 1
 
@@ -726,7 +745,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     
     # Get all diams contained in the considered_spaces with out the whole space
     considered_diams = []
-    new_cons_spaces = sort([x for x in considered_spaces if subspace_dim(field,x)!=4],by = y->subspace_dim(field,y))
+    new_cons_spaces = sort([x for x in considered_spaces if rank(x)!=4],by = y->rank(y))
     for elm in all_diams
         if issubset(elm,new_cons_spaces)
             push!(considered_diams,elm)
@@ -734,13 +753,13 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     end
 
     # Get all 3-intervals contained in the considered_spaces with out the whole space
-    new_cons_spaces2 = sort([x for x in considered_spaces if subspace_dim(field,x)!=5],by = y->subspace_dim(field,y))
-    considered_3_ints = k_interval(field,new_cons_spaces2,3)
+    new_cons_spaces2 = sort([x for x in considered_spaces if rank(x)!=5],by = y->rank(y))
+    considered_3_ints = k_interval(new_cons_spaces2,3)
     
     # List all the two spaces containing the current one-space
     two_spaces_containment = []
     for sub in collect(values(lo_dict))[new_counter][2]
-        if subspace_dim(field,sub)==2
+        if rank(sub)==2
             push!(two_spaces_containment,sub)
         end
     end
@@ -773,7 +792,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space_2)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     end
@@ -788,7 +807,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                             push!(new_indeps_list,space_2)
                         end
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -802,7 +821,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space_2 in complement_list
                         push!(new_indeps_list,space_2)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 end
@@ -828,7 +847,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                     for space in complement_list
                         push!(new_indeps_list,space)
                     end
-                    if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                    if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                         push!(options,[new_indeps_list,new_deps_list,new_counter])
                     end
                 else
@@ -840,10 +859,10 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
         elseif i == 4
             if considered_diams != []
                 for diam in considered_diams
-                    sort!(diam,by = x->subspace_dim(field,x))
+                    sort!(diam,by = x->rank(x))
                     twos = []
                     for elm in diam
-                        if subspace_dim(field,elm)==2
+                        if rank(elm)==2
                             push!(twos,elm)
                         end
                     end
@@ -858,7 +877,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     elseif intersect(twos,deps) != []
@@ -874,7 +893,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     else
@@ -887,10 +906,10 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
         elseif i == 5
             if considered_3_ints != []
                 for int in considered_3_ints
-                    sort!(int,by = x->subspace_dim(field,x))
+                    sort!(int,by = x->rank(x))
                     twos = []
                     for elm in int
-                        if subspace_dim(field,elm)==2
+                        if rank(elm)==2
                             push!(twos,elm)
                         end
                     end
@@ -905,7 +924,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     elseif intersect(twos,deps) != []
@@ -921,7 +940,7 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
                                 push!(new_indeps_list,space)
                             end
                         end
-                        if Diamond_prop(field,new_indeps_list,new_deps_list,all_diams)
+                        if Diamond_prop(new_indeps_list,new_deps_list,all_diams)
                             push!(options,[new_indeps_list,new_deps_list,new_counter])
                         end
                     else
@@ -935,9 +954,9 @@ function Dim5_create_neighbors(indeps::AbstractVector{fpMatrix},deps::AbstractVe
     return options
 end
 
-function Dim5_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},field::Nemo.fpField,num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
+function Dim5_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::AbstractDict,result_list::AbstractVector,all_diams::AbstractVector{AbstractVector{fpMatrix}},num_all_subs::Oscar.IntegerUnion,num_leftovers::Oscar.IntegerUnion)
     # Calculate the neighbors of the current node
-    neighbors = Dim5_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams,field)
+    neighbors = Dim5_create_neighbors(current_node[1],current_node[2],current_node[3],lo_dict,all_diams)
 
     # Insert all neigbours of the current node before the node in the stack list
     if length(neighbors) != 0
@@ -953,25 +972,25 @@ function Dim5_LIFO(current_node::AbstractVector,stack::AbstractVector,lo_dict::A
     for node in stack
         #println(node)
         if node[3] < num_leftovers && length(node[1]) + length(node[2]) < num_all_subs
-            Dim5_LIFO(node,stack,lo_dict,result_list,all_diams,field,num_all_subs,num_leftovers)
+            Dim5_LIFO(node,stack,lo_dict,result_list,all_diams,num_all_subs,num_leftovers)
 
         elseif node[3] == num_leftovers || length(node[1]) + length(node[2]) == num_all_subs
             #println("i'm here")
-            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(field,node[1],"yes")])
+            push!(result_list,[node[1],node[2],q_matroid_from_independentspaces(node[1],true)])
         end
     end
 
 end
 
 function Dim5_q_matroid_DFS(QM::Q_Matroid)
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     Init_Indeps = Q_Matroid_Indepentspaces(QM)
     Init_Deps = Q_Matroid_Depentspaces(QM)
 
-    Trans_Indeps = standard_embedding_higher_dim(Field,Init_Indeps,5)
+    Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,5)
 
     if Init_Deps != []
-        Trans_Deps = standard_embedding_higher_dim(Field,Init_Deps,5)
+        Trans_Deps = standard_embedding_higher_dim(Init_Deps,5)
     else
         Trans_Deps = AbstractVector{fpMatrix}([])
     end
@@ -995,7 +1014,7 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
     # Create all diamonds of the vectorspace
     all_subs = all_subspaces(Field,5)
     Num_all_subs = length(all_subs)
-    all_diams = diamond_list(Field,all_subs)
+    all_diams = diamond_list(all_subs)
 
     # Now we create a dictionary with the leftover 1-spaces
     one_spaces = subspaces_fix_dim(Field,1,5)
@@ -1003,7 +1022,7 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
     for space in one_spaces
         if !(space in Indeps_list)
             if !(space in Deps_list)
-                merge!(LO_dict,Dict(index=>[space,containments_fix_space(Field,space)]))
+                merge!(LO_dict,Dict(index=>[space,containments_fix_space(space)]))
                 index += 1
             end
         end
@@ -1037,10 +1056,10 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
 
     # Looking for a loop in the init_choice, so all it's two spaces are also dependent
     for space in Deps_list
-        if subspace_dim(Field,space) == 1
-            contained_in = containments_fix_space(Field,space)
+        if rank(space) == 1
+            contained_in = containments_fix_space(space)
             for sub in contained_in
-                if subspace_dim(Field,sub) == 2
+                if rank(sub) == 2
                     if !(sub in Deps_list)
                         push!(Deps_list,sub)
                     end
@@ -1053,7 +1072,7 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
     push!(stack,[Indeps_list,Deps_list,counter])
 
     # Create the intial neighbors and start DFS-Algo
-    Dim5_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Field,Num_all_subs,Num_leftovers)
+    Dim5_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Num_all_subs,Num_leftovers)
 
     return unique!(result_list)
 end

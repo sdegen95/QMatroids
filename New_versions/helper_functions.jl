@@ -171,15 +171,12 @@ end
 # Completely new version
 
 function sum_vsV2(space_1::fpMatrix, space_2::fpMatrix)
-    field = base_ring(space_1)
-    zero_mat = matrix_space(field,ncols(space_1),ncols(space_1))(0)
-    zero_vec = zero_mat[1,:]
 
     New_mat = vcat(space_1,space_2)
     r,rref_mat = rref(New_mat)
 
-    if rref_mat == zero_mat
-        return zero_vec
+    if r == 0
+        return space_1
     else
         return rref_mat[1:r,:]
     end
@@ -188,7 +185,7 @@ end
 
 
 @doc raw"""
-    inters_vs(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+    inters_vs(space_1::fpMatrix, space_2::fpMatrix)
 
     Returns the vs-intersection of the two subspaces `space_1` `space_2` sitting in an ambient vectorspace.
 """
@@ -224,12 +221,12 @@ function inters_vs(space_1::fpMatrix, space_2::fpMatrix)
     # Choose the element with maximal dim in that List
     inters = AbstractVector{fpMatrix}([y for y in inters_list[findall(x->rank(x)==maximum(z->rank(z),inters_list),inters_list)]])
 
-    return inters
+    return inters[1]
 end
 
 
 @doc raw"""
-    inters_vsV2(field::Nemo.fpField, space_1::fpMatrix, space_2::fpMatrix)
+    inters_vsV2(space_1::fpMatrix, space_2::fpMatrix)
 """
 # Completly new version
 
@@ -237,14 +234,39 @@ function inters_vsV2(space_1::fpMatrix, space_2::fpMatrix)
     set_space_1 = subspace_set(space_1)
     set_space_2 = subspace_set(space_2)
 
-    inters = [elm for elm in intersect(set_space_1,set_space_2)]
+    inters = AbstractVector{fpMatrix}([elm for elm in intersect(set_space_1,set_space_2)])
     r,new_space= rref(vcat(inters))
 
     if length(inters) != 1
-        return [new_space[1:r,:]]
+        return new_space[1:r,:]
     else
-        return inters
+        return inters[1]
     end
+end
+
+
+@doc raw"""
+    inters_vsV3(space_1::fpMatrix, space_2::fpMatrix)
+"""
+# Completly new version using kernels
+
+function inters_vsV3(space_1::fpMatrix, space_2::fpMatrix)
+    # Compute the kernels of both spaces
+    ker_space_1 = transpose(right_kernel(space_1)[2])
+    ker_space_2 = transpose(right_kernel(space_2)[2])
+
+    # Glue them and compute the kernel
+    intermid_mat = vcat(ker_space_1,ker_space_2)
+    r, intersspace = rref(transpose(right_kernel(intermid_mat)[2]))
+
+    # Distinguish between 0-rank and others
+
+    if r == 0
+        return intersspace[1,:]
+    else
+        return intersspace[1:r,:]
+    end
+
 end
 ################################################################################
 
@@ -575,7 +597,7 @@ end
 
 
 @doc raw"""
-    diamond_list(field::Nemo.fpField, spaces::AbstractVector{fpMatrix})
+    diamond_list(spaces::AbstractVector{fpMatrix})
 
     Returns all possible diamonds of a collection of spaces living in an given ambient space.
 """
@@ -636,7 +658,7 @@ end
 
 
 @doc raw"""
-    k_intervall(field::Nemo.fpField, spaces::AbstractVector{fpMatrix})
+    k_intervall(spaces::AbstractVector{fpMatrix})
 
     Returns all possible lattice k_intervalls of a collection of spaces living in an given ambient space.
 
@@ -700,7 +722,7 @@ end
 
 
 @doc raw"""
-    standard_embedding_higher_dim(field::Nemo.fpField, space::fpMatrix, coord::Oscar-IntegerUnion)
+    standard_embedding_higher_dim(spaces::fpMatrix, coord::Oscar-IntegerUnion)
 
     Takes as input a list of subspaces of an ambient spaces and returns a list where every of these spaces is embedding in the nect higher dimension.
     
@@ -743,6 +765,26 @@ function standard_embedding_higher_dim(spaces::AbstractVector{fpMatrix}, coord::
     end
 
     return transformed_spaces
+end
+
+
+@doc raw"""
+    standard_embedding_higher_dimV2(spaces::fpMatrix, coord::Oscar-IntegerUnion)
+"""
+# Complety new version
+
+function standard_embedding_higher_dimV2(spaces::AbstractVector{fpMatrix}, coord::Oscar.IntegerUnion)
+    field = base_ring(spaces[1])
+    transformed_spaces = AbstractVector{fpMatrix}([])
+
+    # transform all spaces in the list
+    for elm in spaces
+        zero_vec = transpose(matrix(field,zeros(field,1,nrows(elm))))
+        push!(transformed_spaces, hcat(elm[:,1:coord-1],zero_vec,elm[:,coord:end]))
+    end
+
+    return transformed_spaces
+
 end
 ################################################################################
 
@@ -849,5 +891,184 @@ function orthogonal_complementV2(A::fpMatrix)
     r, rref_ker_A = rref(transpose(right_kernel(A)[2]))
 
     return [rref_ker_A[1:r,:]]
+end
+################################################################################
+
+
+
+################################################################################
+# Encoding/Decoding section
+################################################################################
+
+
+@doc raw"""
+    sub_encoding(spaces::AbstractVector{fpMatrix}, ones_dict::OrderedDict, char=false::Bool)
+
+    Returns a list of the encodings of the elements in `spaces`.
+    The encoding of a subspace is a list of the 1-spaces it contains.
+    If you set the `char`-value to `true`, the function will additionally return the field-characteristic.. 
+"""
+# Changes to old version:
+# there is no old version
+
+function sub_encoding(spaces::AbstractVector{fpMatrix}, ones_dict::OrderedDict, char=false::Bool)
+
+    # Encode every element in the `spaces`-list
+    endcoded_list = AbstractVector{AbstractVector{Int}}([])
+    for elm in spaces
+        one_subs = dim_one_subs(elm)
+        elm_ones_list = AbstractVector{Int}([0])
+        for (k,v) in ones_dict
+            if v in one_subs
+                push!(elm_ones_list,k)
+            end
+        end
+        push!(endcoded_list,elm_ones_list)
+    end
+
+    if endcoded_list == [[]]
+        if char == true
+            q = Int(characteristic(base_ring(ones_dict[1])))
+            return AbstractVector{AbstractVector{Int}}([[0]]), q
+        else
+            return AbstractVector{AbstractVector{Int}}([[0]])
+        end
+    else
+        if char == true
+            q = Int(characteristic(base_ring(ones_dict[1])))
+            return endcoded_list, q
+        else
+            return endcoded_list
+        end
+    end
+
+end
+
+
+@doc raw"""
+    sub_decoding(endcoded_list::AbstractVector{AbstractVector{Int}}, ones_dict::OrderedDict)
+
+    Returns a list of the decodings, so the actual spaces, of the elements in the `encoded_list`.
+    The encoding of a subspace is a list of the 1-spaces it contains.
+"""
+# Changes to old version:
+# there is no old version
+
+function sub_decoding(encoded_list::AbstractVector{AbstractVector{Int}}, ones_dict::OrderedDict)
+    # Decode every element in the `encoded_list`-list
+    decoded_list = AbstractVector{fpMatrix}([])
+    for elm in encoded_list
+        value_list = [ones_dict[num] for num in elm if num != 0]
+        if isempty(value_list)
+            field = base_ring(ones_dict[1])
+            zero_vec = matrix(field,zeros(field,1,ncols(ones_dict[1])))
+            insert!(decoded_list,1,zero_vec)
+        else
+            r,rref_mat = rref(vcat(value_list))
+            push!(decoded_list,rref_mat[1:r,:])
+        end
+    end
+
+    return decoded_list
+    
+
+end
+################################################################################
+
+
+@doc raw"""
+    encoded_containments_fix_space(endcoded_space::AbstractVector{Int}, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+
+    Returns the encoding of all spaces containing the given `endcoded_space`.
+"""
+# Changes to old version:
+# there is no old version
+
+function encoded_containments_fix_space(encoded_space::AbstractVector{Int}, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+    # Check issubset of `encoded_space` in every elm from `encoded_all_spaces`
+    len_encoded_space = length(encoded_space)
+    encoded_superspaces = AbstractVector{AbstractVector{Int}}([])
+
+    for elm in encoded_all_spaces
+        if length(elm) >= len_encoded_space && issubset(encoded_space,elm)
+            push!(encoded_superspaces,elm)
+        end
+    end
+
+    return encoded_superspaces
+
+end
+################################################################################
+
+
+@doc raw"""
+    encoded_subspaces_fix_space(encoded_space::AbstractVector{Int}, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+
+    Returns the encoding of all spaces contained in the given `endcoded_space`.
+"""
+# Changes to old version:
+# there is no old version
+
+function encoded_subspaces_fix_space(encoded_space::AbstractVector{Int}, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+    # Check issubset of every elm from `encoded_all_spaces` in `encoded_space`
+    len_encoded_space = length(encoded_space)
+    encoded_subspaces = AbstractVector{AbstractVector{Int}}([])
+
+    for elm in encoded_all_spaces
+        if length(elm) <= len_encoded_space && issubset(elm,encoded_space)
+            push!(encoded_subspaces,elm)
+        end
+    end
+
+    return encoded_subspaces
+
+end
+################################################################################
+
+
+@doc raw"""
+    encoded_k_interval(encoded_spaces::AbstractVector{Int}, char::Oscar.IntegerUnion, k::Oscar.IntegerUnion, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+
+    Returns all possible lattice k_intervalls of a collection of `encoded_spaces` living in an given encoded ambient space.
+
+    The number `k` has to be greater or equal to 2.
+"""
+# Changes to old version:
+# there is no old version
+
+function encoded_k_interval(encoded_spaces::AbstractVector{AbstractVector{Int}}, char::Oscar.IntegerUnion, k::Oscar.IntegerUnion, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
+    info_dict = OrderedDict([])
+    k_intervalls = AbstractVector{AbstractVector{AbstractVector{Int}}}([])
+
+
+    # Fill info_dict with all necesssary information: [en_space, dim, en_space containments, en_space subspaces]
+    for (id,elm) in enumerate(encoded_spaces)
+        a = length(elm)-1
+        dim = Int(log(char,a*(char-1)+1))
+        merge!(info_dict,Dict(id=>[elm,dim,encoded_containments_fix_space(elm,encoded_all_spaces),encoded_subspaces_fix_space(elm,encoded_all_spaces)]))
+    end
+
+    # Create all possible k-intervalls from the `encoded_spaces`-list
+    keys_infod = collect(keys(info_dict))
+    for combi in combinations(keys_infod,2)
+        if info_dict[combi[2]][2] == info_dict[combi[1]][2] + k
+            if issubset(info_dict[combi[1]][1],info_dict[combi[2]][1])
+                inters = intersect(info_dict[combi[1]][3],info_dict[combi[2]][4])
+                if issubset(inters,encoded_spaces)
+                    push!(k_intervalls,inters)
+                end
+            end
+        elseif info_dict[combi[1]][2] == info_dict[combi[2]][2] + k
+            if issubset(info_dict[combi[2]][1],info_dict[combi[1]][1])
+                inters = intersect(info_dict[combi[2]][3],info_dict[combi[1]][4])
+                if issubset(inters,encoded_spaces)
+                    push!(k_intervalls,inters)
+                end
+            end
+        end
+    end
+
+    return unique!(k_intervalls)
+
 end
 ################################################################################

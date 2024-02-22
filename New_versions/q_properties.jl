@@ -272,7 +272,7 @@ end
 # None
 
 function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     dim = ncols(QM.bases[1])
     zero_mat = matrix_space(Field,1,dim)(1)
     zero_vec = zero_mat[1,:]
@@ -291,7 +291,7 @@ function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
     right_ones = AbstractVector{fpMatrix}([])
     for elm in all_ones
         if !(elm in all_ones_of_space)
-            sum = sum_vs(space,elm)
+            sum = sum_vsV2(space,elm)
             if Q_Matroid_Ranks(QM,sum,Indeps,Deps) == space_rank
                 push!(right_ones,elm)
             else
@@ -1086,11 +1086,14 @@ end
 
     Returns the projectivization matroid of the given q-matroid.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Projectivization_matroid(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     dim = ncols(Bases[1])
-    q_rank = subspace_dim(Field,Bases[1])
+    q_rank = rank(Bases[1])
     one_spaces = subspaces_fix_dim(Field,1,dim)
     groundset_dictionary = OrderedDict([])
     groundset = []
@@ -1104,7 +1107,7 @@ function Projectivization_matroid(QM::Q_Matroid)
     # Creating the bases of the projectivization matroid
     proj_mat_bases_helper_list = []
     for basis in Bases
-        one_subs = dim_one_subs(Field,basis)
+        one_subs = dim_one_subs(basis)
         id_sub_pair_list = []
         for (id,value) in groundset_dictionary
             for space in one_subs
@@ -1176,13 +1179,16 @@ end
 
     Given a list of spaces as matrices in RREF, the function searchs for the "id"-matrix which has the most left pivot elements.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Simplyfy_rep_mat(QM::Q_Matroid)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     char = Int(characteristic(Field))
     Ext_F = FiniteField(char,1,"a")[1]
     dim = ncols(Bases[1])
-    q_rank = subspace_dim(Field,Bases[1])
+    q_rank = rank(Bases[1])
 
     if q_rank != 0
         num_vars = dim*q_rank+1
@@ -1258,22 +1264,25 @@ end
     
     But we need a lot of input and have to do `Simplyfy_rep_mat` seperatly.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix}, G::AbstractAlgebra.Generic.MatSpaceElem{fqPolyRepMPolyRingElem}, R::fqPolyRepMPolyRing ,last_var::fqPolyRepMPolyRingElem)
     Bases = QM.bases
-    Field = QM.field
+    Field = base_ring(QM.groundspace)
     char = Int(characteristic(Field))
-    Ext_F,a = FiniteField(char,1,"a")
-    q_rank = subspace_dim(Field,Bases[1])
+    Ext_F = FiniteField(char,1,"a")[1]
+    q_rank = rank(Bases[1])
 
     if q_rank == 0
         dim = ncols(Bases[1])
         ms = matrix_space(Ext_F,1,dim)
 
-        return "Q-Matroid is not rep'able by $(ms(0))!!"
+        return "Q-Matroid is rep'able by $(ms(0))!!"
     else
         q_rank_dep_spaces = []
         for dep_space in Deps
-            if subspace_dim(Field,dep_space) == q_rank
+            if rank(dep_space) == q_rank
                 push!(q_rank_dep_spaces,dep_space)
             end
         end
@@ -1319,13 +1328,16 @@ end
     
     It combines the `Simplyfy_rep_mat` and `Is_representable_midstep` function.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+
 function Is_representable(QM::Q_Matroid)
 
-    if subspace_dim(QM.field,QM.bases[1]) == 0
+    if rank(QM.bases[1]) == 0
         dim = ncols(QM.bases[1])
         ms = matrix_space(QM.field,1,dim)
 
-        return "Q-Matroid is not rep'able by $(ms(0))!!"
+        return "Q-Matroid is rep'able by $(ms(0))!!"
     else
         G,R,var = Simplyfy_rep_mat(QM)
         deps = Q_Matroid_Depentspaces(QM)
@@ -1345,15 +1357,18 @@ end
 
     This means that every circ of `QM2` is a sum of circ's of `QM1`.
 """
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of in-func. varible `Field`
+
 function Are_q_quotients(QM1::Q_Matroid, QM2::Q_Matroid)
     is_q_quotient = true
-    Field = QM.field
-    circs_1 = Q_Matroid_Circuits(QM1)
-    circs_2 = Q_Matroid_Circuits(QM2)
+    circs_1 = Q_Matroid_CircuitsV2(QM1)
+    circs_2 = Q_Matroid_CircuitsV2(QM2)
 
     for circ in circs_2
         circ_counter = 0
-        sub_dim = subspace_dim(Field,circ)
+        sub_dim = rank(circ)
         for i in range(1,sub_dim)
             if i == 1
                 if circ in circs_1
@@ -1366,7 +1381,7 @@ function Are_q_quotients(QM1::Q_Matroid, QM2::Q_Matroid)
                 for tuple in summing_collec
                     for elm in tuple
                         if elm != tuple[1]
-                            tuple[1] = sum_vs(Field,tuple[1],elm)
+                            tuple[1] = sum_vsV2(tuple[1],elm)
                         end
                     end
                     if tuple[1] == circ
@@ -1398,6 +1413,9 @@ end
         
     This means that every pair of distinct q-matroids from that collection are q-quotients (in one way). 
 """
+# Changes to old version:
+# None
+
 function Is_q_concordant_collec(collection::AbstractVector{Q_Matroid})
     is_q_concordant = true
 

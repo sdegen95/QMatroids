@@ -114,13 +114,36 @@ end
 
 
 @doc raw"""
+    Uniform_q_matroid(k::IntegerUnion, n::IntegerUnion)
+
+    Constructs the `uniform q-matroid` of rank `k` in dimension `n`.
+"""
+# Changes to old version:
+# there is no old version 
+
+function Uniform_q_matroid(field::Nemo.fpField ,k::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
+    all_k_spaces = subspaces_fix_dim(field,k,n)
+    gs = matrix_space(field,n,n)(1)
+
+    return Q_Matroid(gs,all_k_spaces)
+end
+
+
+@doc raw"""
     Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
 
     Returns if the inputed list of spaces form the set of Depnedentspaces of a Q-Matroid.
 
     For the choice you can choose "yes" and if the list is not the set of Depnedentspaces of a Q-Matroid, it will return also which axiom of (D1)-(D3) fails. 
 """
-function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+# Changes to old version:
+# (1) using rank instead of `subspace_dim`-func
+# (2) got rid of `field`-variable
+
+# field-var def via first elm in `Deps`-list: possible issue if this list is empty
+
+function Are_q_matroid_dependentspaces(Deps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+    field = base_ring(Deps[1])
     are_deps = true
     loop_breaker = true
     fail = "Non"
@@ -140,7 +163,7 @@ function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector
 
         # Fill info_dict with all necesssary information
         for (id,space) in enumerate(Deps)
-            merge!(deps_dict,Dict(id=>[space,containments_fix_space(field,space)]))
+            merge!(deps_dict,Dict(id=>[space,containments_fix_space(space)]))
         end
 
         # Check axiom (D1)
@@ -166,11 +189,11 @@ function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector
         if are_deps
             for pair in combinations(collect(values(deps_dict)),2)
                 if loop_breaker
-                    if !(inters_vs(field,pair[1][1],pair[2][1])[1] in Deps)
-                        sum = sum_vs(field,pair[1][1],pair[2][1])
+                    if !(inters_vsV3(pair[1][1],pair[2][1]) in Deps)
+                        sum = sum_vsV2(pair[1][1],pair[2][1])
                         if !(sum in vs_sums)
                             push!(vs_sums,sum)
-                            codim_ones = codim_one_subs(field,sum)
+                            codim_ones = codim_one_subs(sum)
                             for space in codim_ones
                                 if !(space in Deps)
                                     are_deps = false
@@ -201,4 +224,10 @@ function Are_q_matroid_dependentspaces(field::Nemo.fpField, Deps::AbstractVector
     end
 
 end
+################################################################################
+
+
+
+################################################################################
+# Encoded section
 ################################################################################
