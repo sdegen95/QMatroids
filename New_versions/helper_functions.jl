@@ -181,6 +181,26 @@ function sum_vsV2(space_1::fpMatrix, space_2::fpMatrix)
         return rref_mat[1:r,:]
     end
 end
+
+
+@doc raw"""
+    multisum_vs(spaces::AbstractVector{fpMatrix})
+
+    Returns the vs-sum of all subspaces in the list `spaces` sitting in an ambient vectorspace.
+"""
+# Changes to old version:
+# There is no old version
+
+function multisum_vs(spaces::AbstractVector{fpMatrix})
+    New_mat = vcat(spaces)
+    r,rref_mat = rref(New_mat)
+
+    if r == 0
+        return spaces[1]
+    else
+        return rref_mat[1:r,:]
+    end
+end
 ################################################################################
 
 
@@ -552,6 +572,41 @@ end
 ################################################################################
 
 
+# @doc raw"""
+#     gln_matrices(field::fqPolyRepField, size::Oscar.IntegerUnion)
+
+#     Returns all gln-matrices, with entries of the given field (no extension field).
+#     `Size` has to be greater equal one.
+# """
+# # Changes to old version:
+# # There is no old version
+
+# function gln_matrices(field::Nemo.fpField, size::Oscar.IntegerUnion)
+#     char = Int(Oscar.characteristic(field))
+
+#     # Create all possible one row matrices
+#     one_rows = AbstractVector{fpMatrix}([])
+#     for i in range(1,char^(size)-1)
+#         array = [digits(i,base=char,pad=size)]
+#         vec = matrix(field,array)
+#         push!(one_rows,vec)
+#     end
+#     one_rows = unique(one_rows)
+
+#     # Create all possible (size x size)-matrices
+#     matrices_collec = AbstractVector{fpMatrix}([])
+#     for k in multiset_permutations(one_rows,size)
+#         new_mat = vcat(k)
+#         if rank(new_mat) == size
+#             push!(matrices_collec,new_mat)
+#         end
+#     end
+
+#     return unique!(matrices_collec)
+# end
+################################################################################
+
+
 @doc raw"""
     codim_one_subs(space::fpMatrix)
 
@@ -583,7 +638,7 @@ end
 # (1) using rank instead of `subspace_dim`-func
 # (2) got rid of `field`-variable
 
-function  dim_one_subs(space::fpMatrix)
+function dim_one_subs(space::fpMatrix)
     collection_of_subs = subspaces_fix_space(space)
     dim = rank(space)
 
@@ -690,7 +745,7 @@ function k_interval(spaces::AbstractVector{fpMatrix}, k::Oscar.IntegerUnion)
     for combi in combinations(values_list,2)
         if combi[2][2] == combi[1][2] + k
             if issubset(combi[1][5],combi[2][5])
-                inters = intersect(combi[2][4],combi[1][3])
+                inters = intersect(combi[1][3],combi[2][4])
                 if issubset(inters,spaces)
                     push!(diamonds,inters)
                 else
@@ -701,7 +756,7 @@ function k_interval(spaces::AbstractVector{fpMatrix}, k::Oscar.IntegerUnion)
             end
         elseif combi[1][2] == combi[2][2] + k
             if issubset(combi[2][5],combi[1][5])
-                inters = intersect(combi[1][4],combi[2][3])
+                inters = intersect(combi[2][3],combi[1][4])
                 if issubset(inters,spaces)
                     push!(diamonds,inters)
                 else
@@ -722,7 +777,38 @@ end
 
 
 @doc raw"""
-    standard_embedding_higher_dim(spaces::fpMatrix, coord::Oscar-IntegerUnion)
+    standard_projection(spaces::fpMatrix)
+
+    Takes as input a list of subspaces of an ambient spaces and returns a list where every of these spaces is projected in one dimension lower.
+    
+    Here the standard projection is used, meaning we set the last coordiante for every vector of the original space to 0 and identify the space with one lower-dim space.
+"""
+# Changes to old version:
+# there is no old version
+
+function standard_projection(spaces::AbstractVector{fpMatrix})
+    new_dim = ncols(spaces[1])-1
+    projected_spaces = AbstractVector{fpMatrix}([])
+
+    # Remove the last column of every element in `spaces` list
+    for elm in spaces
+        new_elm = elm[:,1:new_dim]
+        if is_zero(new_elm)
+            push!(projected_spaces,new_elm)
+        else
+            r, mat = rref(new_elm)
+            push!(projected_spaces,mat[1:r,:])
+        end
+    end
+
+    return unique!(projected_spaces)
+
+end
+################################################################################
+
+
+@doc raw"""
+    standard_embedding_higher_dim(spaces::AbstractVector{fpMatrix}, coord::Oscar-IntegerUnion)
 
     Takes as input a list of subspaces of an ambient spaces and returns a list where every of these spaces is embedding in the nect higher dimension.
     
@@ -902,6 +988,39 @@ end
 
 
 @doc raw"""
+    binary_encoding(k_spaces::AbstractVector{fpMatrix}, all_k_spaces::AbstractVector{fpMatrix})
+
+    Returns one 1-0-Array of length #`all_k_spaces` as the binary-encoding of the given `k_spaces`-list.
+    Here we set a 1 for a space in `all_k_spaces` if this space is also in `k_spaces` and 0 else.
+    The ordering of the Array is induced by the ordering of the `all_k_spaces`-list, which is the ordering coming from the `subspaces_fix_dim` function.
+    If `no_dict==false` then the fcuntion will return a dictionary with entries: [1 or 0,space].
+"""
+# Changes to old version:
+# there is no old version
+
+function binary_encoding(k_spaces::AbstractVector{fpMatrix}, all_k_spaces::AbstractVector{fpMatrix},no_dict=true)
+    encoded_dict = OrderedDict([])
+    # Iterate through the `all_k_spaces`-list: add a one if the current element is in `k_spaces` and a zero else
+    for (id,elm) in enumerate(all_k_spaces)
+        if elm in k_spaces
+            merge!(encoded_dict,Dict(id=>[1,elm]))
+        else
+            merge!(encoded_dict,Dict(id=>[0,elm]))
+        end
+    end
+
+    if no_dict
+        encoded_array = [elm[1] for elm in collect(values(encoded_dict))]
+        return encoded_array
+    elseif no_dict==false
+        return encoded_dict
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
     sub_encoding(spaces::AbstractVector{fpMatrix}, ones_dict::OrderedDict, char=false::Bool)
 
     Returns a list of the encodings of the elements in `spaces`.
@@ -1039,6 +1158,7 @@ end
 function encoded_k_interval(encoded_spaces::AbstractVector{AbstractVector{Int}}, char::Oscar.IntegerUnion, k::Oscar.IntegerUnion, encoded_all_spaces::AbstractVector{AbstractVector{Int}})
     info_dict = OrderedDict([])
     k_intervalls = AbstractVector{AbstractVector{AbstractVector{Int}}}([])
+    encoded_spaces = sort(encoded_spaces, by = x->length(x))
 
 
     # Fill info_dict with all necesssary information: [en_space, dim, en_space containments, en_space subspaces]

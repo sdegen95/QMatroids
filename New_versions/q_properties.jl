@@ -235,7 +235,7 @@ end
 @doc raw"""
     Is_paving_q_matroid(QM::Q_Matroid)
 
-    This returns the circuits of the q-matroid.
+    This returns if the given the q-matroid is paving, i.e. all circtuits have dimension >= rank(QM).
 """
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
@@ -263,6 +263,7 @@ function Is_paving_q_matroid(QM::Q_Matroid)
 end
 ################################################################################
 
+
 @doc raw"""
     Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
 
@@ -274,8 +275,8 @@ end
 function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
     Field = base_ring(QM.groundspace)
     dim = ncols(QM.bases[1])
-    zero_mat = matrix_space(Field,1,dim)(1)
-    zero_vec = zero_mat[1,:]
+    # zero_mat = matrix_space(Field,1,dim)(1)
+    # zero_vec = zero_mat[1,:]
 
     # Compute Indeps and Deps for rank function
     Indeps = Q_Matroid_Indepentspaces(QM)
@@ -307,10 +308,77 @@ function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
     New_mat = vcat(right_ones)
     r,rref_mat = rref(New_mat)
 
-    if rref_mat == zero_mat
-        return zero_vec
+    if r == 0
+        return rref_mat[1,:]
     else
         return rref_mat[1:r,:]
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_CyclicClosure_Function(QM::Q_Matroid, space::fpMatrix)
+
+    Returns the cyclic closure w.r.t. of the given `space` in the terms of circuits coming from the given q-Matroid.
+"""
+# Changes to old version:
+# None
+
+function  Q_Matroid_CyclicClosure_Function(QM::Q_Matroid, space::fpMatrix)
+    Circs = Q_Matroid_CircuitsV2(QM)
+    field = base_ring(QM.groundspace)
+    dim = ncols(QM.groundspace)
+
+    space_subs_lists = subspaces_fix_space(space)
+    space_subs = AbstractVector{fpMatrix}([])
+    for list in space_subs_lists
+        for elm in list
+            push!(space_subs,elm)
+        end
+    end
+
+    # Get all the circuits contained in the given `space`
+    space_circs = intersect(Circs,space_subs)
+
+    # Add all these circuits together if there is anything to add
+    if space_circs == []
+        zero_vec = matrix_space(field,1,dim)(0)
+        return zero_vec
+    else
+        cyc_cl = multisum_vs(space_circs)
+        return cyc_cl
+    end
+   
+end
+################################################################################
+
+
+@doc raw"""
+    Is_full_q_matroid(QM::Q_Matroid)
+
+    Returns if the given q-Matroid is full, i.e. cyc(E)=E and cl(0)=0.
+"""
+# Changes to old version:
+# None
+
+function Is_full_q_matroid(QM::Q_Matroid)
+    dim = ncols(QM.groundspace)
+    field = base_ring(QM.groundspace)
+    zero_vec = matrix(field,zeros(Int,1,dim))
+
+    cl_zero = Q_Matroid_Closure_Function(QM,zero_vec)
+    cyc_ground = Q_Matroid_CyclicClosure_Function(QM,QM.groundspace)
+
+    if cyc_ground == QM.groundspace
+        if cl_zero == zero_vec
+            return true
+        else
+            return false
+        end
+    else
+        return false
     end
 
 end
@@ -1278,7 +1346,7 @@ function Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix},
         dim = ncols(Bases[1])
         ms = matrix_space(Ext_F,1,dim)
 
-        return "Q-Matroid is rep'able by $(ms(0))!!"
+        return "Q-Matroid is representable by $(ms(0))!!"
     else
         q_rank_dep_spaces = []
         for dep_space in Deps
@@ -1312,9 +1380,9 @@ function Is_representable_midstep(QM::Q_Matroid, Deps::AbstractVector{fpMatrix},
         I = ideal(R,gb)
 
         if is_one(I)
-            return "Q-Matroid is not rep'able!!", I 
+            return "Q-Matroid is not representable!!", I 
         else
-            return "Q-Matroid is rep'able!!", I  
+            return "Q-Matroid is representable!!", I  
         end
     end
 
@@ -1334,10 +1402,11 @@ end
 function Is_representable(QM::Q_Matroid)
 
     if rank(QM.bases[1]) == 0
+        field = base_ring(QM.groundspace)
         dim = ncols(QM.bases[1])
-        ms = matrix_space(QM.field,1,dim)
+        ms = matrix_space(field,1,dim)
 
-        return "Q-Matroid is rep'able by $(ms(0))!!"
+        return "Q-Matroid is representable by $(ms(0))!!"
     else
         G,R,var = Simplyfy_rep_mat(QM)
         deps = Q_Matroid_Depentspaces(QM)
@@ -1439,6 +1508,9 @@ end
 
     Here it's required that `QM1` is a q-quotient of `QM2`
 """
+# Changes to old version:
+# None
+
 function Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
     Bases_1 = QM1.bases
     Field = QM1.field
@@ -1470,3 +1542,40 @@ function Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
 
     return Q_Matroid(Field,Q_Higgs_lift_bases)
 end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_Aut(QM::Q_Matroid)
+
+    Returns the automorphism group of the given q-Matroid.
+"""
+# Changes to old version:
+# There is no old version
+
+function Q_Matroid_Aut(QM::Q_Matroid)
+    Bases = QM.bases
+    Field = base_ring(QM.groundspace)
+    Dim = ncols(QM.groundspace)
+    Gln = Oscar.general_linear_group(Dim, Field)
+    Gln_elements = collect(Oscar.elements(Gln))
+
+    # Check for every matrix in `gln` if the multiplication with every bases-element is still a bases-element
+    gen_mats = AbstractVector{MatrixGroupElem{fpFieldElem, fpMatrix}}([])
+    for mat in Gln_elements
+        hold = true
+        for base in Bases
+            prod = rref(transpose(mat*transpose(base)))[2]
+            if !(prod in Bases)
+                hold = false
+                break
+            end
+        end
+        if hold
+            push!(gen_mats,mat)
+        end
+    end
+ 
+    return matrix_group(gen_mats)
+end
+################################################################################

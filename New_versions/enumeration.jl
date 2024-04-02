@@ -396,7 +396,7 @@ function Dim3_q_matroid_DFS(QM::Q_Matroid)
             contained_in = containments_fix_space(space)
             for sub in contained_in
                 if rank(sub) == 2
-                    if !(sub in Deps_list)
+                    if !(sub in Deps_list) && !(sub in Indeps_list)
                         push!(Deps_list,sub)
                     end
                 end
@@ -699,7 +699,7 @@ function Dim4_q_matroid_DFS(QM::Q_Matroid)
             contained_in = containments_fix_space(space)
             for sub in contained_in
                 if rank(sub) == 2
-                    if !(sub in Deps_list)
+                    if !(sub in Deps_list) && !(sub in Indeps_list)
                         push!(Deps_list,sub)
                     end
                 end
@@ -1060,7 +1060,7 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
             contained_in = containments_fix_space(space)
             for sub in contained_in
                 if rank(sub) == 2
-                    if !(sub in Deps_list)
+                    if !(sub in Deps_list) && !(sub in Indeps_list)
                         push!(Deps_list,sub)
                     end
                 end
@@ -1075,4 +1075,469 @@ function Dim5_q_matroid_DFS(QM::Q_Matroid)
     Dim5_LIFO(stack[1],stack,LO_dict,result_list,all_diams,Num_all_subs,Num_leftovers)
 
     return unique!(result_list)
+end
+
+
+
+################################################################################
+################################################################################
+# Encoded section
+################################################################################
+################################################################################
+
+
+@doc raw"""
+    En_Diamond_prop(en_indeps::AbstractVector{AbstractVector{Int}},
+                    en_deps::AbstractVector{AbstractVector{Int}},
+                    en_all_diams=AbstractVector{AbstractVector{AbstractVector{Int}}})
+
+    Returns if the union list of `en_indeps` and `en_deps` satisfies the q-matroid diamond condtion.
+    Note: This is required to speed up the computations in the below enumeration functions.
+"""
+# Changes to old version:
+# There is no old version
+
+function En_Diamond_prop(en_indeps::AbstractVector{AbstractVector{Int}},
+                         en_deps::AbstractVector{AbstractVector{Int}},
+                         en_all_diams::AbstractVector{AbstractVector{AbstractVector{Int}}})
+    holds = true
+
+    # Put all current spaces together in one list
+    en_all_current_spaces = union(en_indeps,en_deps)
+    
+    # Sort them w.r.t to their subspace dimension
+    sort!(en_all_current_spaces, by = x -> length(x))
+
+    # Here we put in all possible encoded diamonds of the encoded vector_space, not only those in the encoded current spaces
+    # Check which of all the encoded diamonds of the encoded v.s. is in encoded the current_spaces_list
+    en_diams = []
+    for elm in en_all_diams
+        if issubset(elm,en_all_current_spaces)
+            push!(en_diams,elm)
+        end
+    end
+
+    # Check if all currently possible encoded diamonds satisfy the one of the four possible options
+    for diam in en_diams
+        sort!(diam, by = x -> length(x))
+        overall_count = 0
+        if diam[1] in en_indeps
+            # One diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_deps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # zero diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # prime diamond
+            for elm in diam
+                if elm != diam[1] && elm != diam[length(diam)]
+                    if elm in en_deps
+                        overall_count += 1
+                        break
+                    end
+                elseif elm == diam[length(diam)]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # mixed diamond
+            count = 0
+            for elm in diam
+                if elm != diam[1] && elm != diam[length(diam)]
+                    if elm in en_indeps
+                        continue
+                    elseif elm in en_deps
+                        count += 1
+                    end
+                elseif elm == diam[length(diam)]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+                if count > 1
+                    overall_count += 1
+                    break
+                end
+            end
+
+        elseif diam[1] in en_deps
+            # One diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # zero diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # prime diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_indeps
+                        overall_count += 1
+                        break
+                    end
+                end
+            end
+            # mixed diamond
+            for elm in diam
+                if elm != diam[1]
+                    if elm in en_indeps
+                        overall_count +=1
+                        break
+                    end
+                end
+            end
+        end
+
+        if overall_count >= 4
+            holds = false
+            break
+        end
+    end
+
+    return holds
+end
+
+
+################################################################################
+# Enumeration of rank-2 q-matroids
+################################################################################
+
+
+@doc raw"""
+    
+"""
+# Changes to old version:
+# There is no old version
+
+function En_create_neighbors(node::AbstractVector,
+    lo_dict::AbstractDict,
+    en_all_diams::AbstractVector{AbstractVector{AbstractVector{Int}}},
+    en_all_spaces::AbstractVector{AbstractVector{Int}},
+    char::Oscar.IntegerUnion,
+    dim::Oscar.IntegerUnion)
+
+    # Increase the depth of the tree
+    New_counter = node[3] + 1
+
+    # Get the encoded space which are not assigned yet
+    con_sp = collect(values(lo_dict))[New_counter][2]
+    compl_list = [elm for elm in con_sp if (!(elm in node[1]) && !(elm in node[2]))]
+
+    # Helperlist
+    two_sp_cont = [x for x in con_sp if length(x)==q_binomcoeff(char,2,1)+1]
+    two_sp_not_compl = [x for x in two_sp_cont if !(x in compl_list)]
+    
+    # Decide the possible options
+    En_Options = []
+    for i in range(1,dim)
+    # 1. options: 0-dim loop space
+        if i == 1
+            if two_sp_cont != []
+                right_count = 0
+                for elm in two_sp_cont
+                    if elm in node[1]
+                        right_count += 1
+                    elseif elm in compl_list
+                        right_count += 1
+                    end
+                end
+                
+                if right_count == q_binomcoeff(char,dim-1,1)
+                    New_Indeps_list = copy(node[1]) 
+                    New_Deps_list = copy(node[2])
+                    for elm in compl_list
+                        push!(New_Indeps_list,elm)
+                    end
+                    if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                        push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                    end
+                end
+            end
+    # 2. options: 1-dim loop space
+        elseif i == 2
+            if two_sp_not_compl != []
+                if !(two_sp_not_compl[1] in node[2])
+                    for elmx in compl_list
+                        New_Indeps_list = copy(node[1]) 
+                        New_Deps_list = copy(node[2])
+                        push!(New_Deps_list,elmx)
+                        for elmy in compl_list
+                            if elmy != elmx
+                                push!(New_Indeps_list,elmy)
+                            end
+                        end
+                        if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                            push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                        end
+                    end
+                end
+            else
+                for elmx in compl_list
+                    New_Indeps_list = copy(node[1]) 
+                    New_Deps_list = copy(node[2])
+                    push!(New_Deps_list,elmx)
+                    for elmy in compl_list
+                        if elmy != elmx
+                            push!(New_Indeps_list,elmy)
+                        end
+                    end
+                    if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                        push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                    end
+                end
+            end
+    # 3. options: 1-dim loop space (already assigned element)
+        elseif i == 3
+            inters = intersect(two_sp_not_compl,node[2])
+            if inters != []
+                for elmx in inters
+                    New_Indeps_list = copy(node[1]) 
+                    New_Deps_list = copy(node[2])
+                    for elmy in compl_list
+                        push!(New_Indeps_list,elmy)
+                    end
+                    if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                        push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                    end
+                end
+            end
+    # 4. options: 2-dim loop space
+        elseif i == 4
+            con_diams = [x for x in en_all_diams if issubset(x,con_sp) && length(x[1])==2]
+            if con_diams != []
+                for diam in con_diams
+                    twos = [x for x in diam if length(x)==q_binomcoeff(char,2,1)+1]
+                    if issubset(twos,compl_list)
+                        New_Indeps_list = copy(node[1]) 
+                        New_Deps_list = copy(node[2])
+                        for elm in twos
+                            push!(New_Deps_list,elm)
+                        end
+                        for elm in compl_list
+                            if !(elm in twos)
+                                push!(New_Indeps_list,elm)
+                            end
+                        end
+                        if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                            push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                        end
+                    elseif intersect(twos,node[2]) != []
+                        New_Indeps_list = copy(node[1]) 
+                        New_Deps_list = copy(node[2])
+                        for elm in twos
+                            if !(elm in node[2])
+                                push!(New_Deps_list,elm)
+                            end
+                        end
+                        for elm in compl_list
+                            if !(elm in twos)
+                                push!(New_Indeps_list,elm)
+                            end
+                        end
+                        if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                            push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                        end
+                    end
+                end
+            end
+    # 5. options: 3-dim loop space
+        elseif i == 5
+            new_con_sp = sort(AbstractVector{AbstractVector{Int}}([x for x in con_sp if length(x)<=q_binomcoeff(char,4,1)+1]),by = x->length(x))
+            con_3_int = encoded_k_interval(new_con_sp,char,3,en_all_spaces)
+            if con_3_int != []
+                for int in con_3_int
+                    sort!(int,by = x->length(x))
+                    twos = [x for x in int if length(x)==q_binomcoeff(char,2,1)+1]
+                    if issubset(twos,compl_list)
+                        New_Indeps_list = copy(node[1]) 
+                        New_Deps_list = copy(node[2])
+                        for elm in twos
+                            push!(New_Deps_list,elm)
+                        end
+                        for elm in compl_list
+                            if !(elm in twos)
+                                push!(New_Indeps_list,elm)
+                            end
+                        end
+                        if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                            push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                        end
+                    elseif intersect(twos,node[2]) != []
+                        New_Indeps_list = copy(node[1]) 
+                        New_Deps_list = copy(node[2])
+                        for elm in twos
+                            if !(elm in node[2])
+                                push!(New_Deps_list,elm)
+                            end
+                        end
+                        for elm in compl_list
+                            if !(elm in twos)
+                                push!(New_Indeps_list,elm)
+                            end
+                        end
+                        if En_Diamond_prop(New_Indeps_list,New_Deps_list,en_all_diams)
+                            push!(En_Options,[New_Indeps_list,New_Deps_list,New_counter])
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return En_Options
+
+end
+
+function En_LIFO(current_node::AbstractVector,
+    stack::AbstractVector,
+    lo_dict::AbstractDict,
+    result_list::AbstractVector,
+    en_all_diams::AbstractVector{AbstractVector{AbstractVector{Int}}},
+    en_all_spaces::AbstractVector{AbstractVector{Int}},
+    num_all_subs::Oscar.IntegerUnion,
+    num_leftovers::Oscar.IntegerUnion,
+    char:: Oscar.IntegerUnion,
+    dim:: Oscar.IntegerUnion)
+
+    # Calculate the neighbors of the current node
+    neighbors = En_create_neighbors(current_node,lo_dict,en_all_diams,en_all_spaces,char,dim)
+
+    # Insert all neigbours of the current node before the node in the stack list
+    if length(neighbors) != 0
+        for neighbor in neighbors
+            insert!(stack,1,neighbor)
+        end
+    end
+
+    # Remove the current node from the stack
+    deleteat!(stack,findall(x-> x == current_node,stack))
+
+    # Gone recursivly through the stack
+    for node in stack
+        #println(node)
+        if node[3] < num_leftovers && length(node[1]) + length(node[2]) < num_all_subs
+            En_LIFO(node,stack,lo_dict,result_list,en_all_diams,en_all_spaces,num_all_subs,num_leftovers,char,dim)
+
+        elseif node[3] == num_leftovers || length(node[1]) + length(node[2]) == num_all_subs
+            #println("i'm here")
+            maxis = [node[1][x] for x in findall(y->length(y)==maximum(length,node[1]),node[1])]
+            push!(result_list,[node[1],node[2],maxis])
+        end
+    end
+
+end
+
+function En_q_matroid_DFS(QM::Q_Matroid)
+    # Define all necesssary variables
+    Indeps_list = AbstractVector{AbstractVector{Int}}([])
+    Deps_list = AbstractVector{AbstractVector{Int}}([])
+    Stack = []
+    Result_list = []
+    Counter = 0
+
+    # Get the Indeps, Deps and Dimension of the Input
+    Init_Dim = ncols(QM.groundspace)
+    Init_Field = base_ring(QM.groundspace)
+    Init_char = Int(characteristic(Init_Field))
+    Init_Indeps = Q_Matroid_Indepentspaces(QM)
+    Init_Deps = Q_Matroid_Depentspaces(QM)
+
+    # Transform the intial Input
+    Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,Init_Dim+1)
+    if Init_Deps != []
+        Trans_Deps = standard_embedding_higher_dim(Init_Deps,Init_Dim+1)
+    else
+        Trans_Deps = AbstractVector{fpMatrix}([])
+    end
+
+    # Compute all spaces of the ambient space
+    All_sp = sort(all_subspaces(Init_Field,Init_Dim+1), by = x -> rank(x))
+    Num_all_sp = length(All_sp)
+    Ones_dict = OrderedDict([id-1=>elm for (id,elm) in enumerate(All_sp) if rank(elm)==1])
+
+    # Encode the tranformed spaces 
+    En_all_sp = sub_encoding(All_sp,Ones_dict)
+    En_one_sp = [elm for elm in En_all_sp if length(elm)==2]
+    En_Trans_Indeps = sub_encoding(Trans_Indeps,Ones_dict)
+    if Trans_Deps != []
+        En_Trans_Deps = sub_encoding(Trans_Deps,Ones_dict)
+    else
+        En_Trans_Deps = AbstractVector{AbstractVector{Int}}([])
+    end
+
+    # Create all encoded diamonds of the encoded ambient space
+    En_all_diams = encoded_k_interval(En_all_sp,Init_char,2,En_all_sp)
+
+    # Fill Indeps and Deps Lists with the encoded tranformed Init-Input
+    for elm in En_Trans_Indeps
+        push!(Indeps_list,elm)
+    end
+    for elm in En_Trans_Deps
+        push!(Deps_list,elm)
+    end
+
+    # Create the `LO_dict` and declare them all to be independent
+    LO_dict = OrderedDict([])
+    index = 1
+    for elm in En_one_sp
+        if (!(elm in Indeps_list) && !(elm in Deps_list))
+            merge!(LO_dict,Dict(index=>[elm,encoded_containments_fix_space(elm,En_all_sp)]))
+            index += 1
+        end
+    end
+    #LO_dict = OrderedDict([id => [elm,encoded_containments_fix_space(elm,En_all_sp)] for (id,elm) in enumerate(En_one_sp) if (!(elm in Indeps_list) && !(elm in Deps_list))])
+    union!(Indeps_list,[x[1] for x in collect(values(LO_dict))])
+    Num_leftovers = length(LO_dict)
+
+    # Declare all encoded spaces which have dim. greate equal 2 as dependent
+    En_dim_two = q_binomcoeff(Init_char,2,1)+1 
+    Bad_en_dims = [1,2,En_dim_two]
+    for elm in En_all_sp
+        if !(length(elm) in Bad_en_dims) && !(elm in Deps_list) && !(elm in Indeps_list)
+            push!(Deps_list,elm)
+        end
+    end
+
+    # Looking for loops, so all encoded dim.-2 spaces can be declared dependent
+    for elm in Deps_list
+        if length(elm) == 2
+            super_sp = [x for x in encoded_containments_fix_space(elm,En_all_sp) if (length(x)==En_dim_two && !(x in Deps_list) && !(x in Indeps_list))]
+            union!(Deps_list,super_sp)
+        end
+    end
+
+    # Now push the Tuple [Indeps_list,Deps_list,Counter] into the stack
+    push!(Stack,[Indeps_list,Deps_list,Counter])
+
+    # Start the DFS-Algo
+    En_LIFO(Stack[1],Stack,LO_dict,Result_list,En_all_diams,En_all_sp,Num_all_sp,Num_leftovers,Init_char,Init_Dim+1)
+
+    return unique!(Result_list)
+
 end

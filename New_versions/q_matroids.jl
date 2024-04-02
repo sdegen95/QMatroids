@@ -16,7 +16,7 @@ using InvertedIndices
 
 
 @doc raw"""
-    Construct a `q-matroid` with bases and field attribute.
+    Construct a `q-matroid` with bases and groundspace attribute.
 
     All matrices in the bases-list need to be in RREF.
 """
@@ -229,5 +229,64 @@ end
 
 
 ################################################################################
-# Encoded section
+# Restriction/Contraction section
+################################################################################
+
+
+@doc raw"""
+    Construct a `Embedded_q_matroid` with em_bases, em_groundspace  attribute.
+    One can see this as a lower dimensional q-matroid embedded in to the ambient space.
+    Note: this itself is not enough to give an ambient-space dimensional q-matroid.
+
+
+    All matrices in the bases-list need to be in RREF.
+"""
+# Changes to old version:
+# There is no old version 
+
+struct Embedded_q_Matroid
+    em_groundspace::fpMatrix           
+    em_bases::AbstractVector{fpMatrix}
+end
+
+function Base.show(io::IO, EQM::Embedded_q_Matroid)
+    q_rank = rank(EQM.em_bases[1])
+    dim = rank(EQM.em_groundspace)
+    ambient_dim = ncols(EQM.em_groundspace)
+    print(io, "Embbeded q-Matroid of dim. $(dim) and rank $(q_rank) in $(ambient_dim)-dim. vector-space over the $(base_ring(EQM.em_groundspace))")
+end
+################################################################################
+
+
+@doc raw"""
+    Restriction_Q_Matroid(QM::Q_Matroid, restriction_space::fpMatrix)
+
+    Returns the restriction Q-Matroid to a specified space for the given Q-Matroid.
+    Note: We do not project here, meaning that the result is a `Embedded q-matroid` in the original space. 
+"""
+# Changes to old version:
+# There is no old version
+
+function Restriction_Q_Matroid(QM::Q_Matroid, restriction_space::fpMatrix)
+    Indeps = Q_Matroid_Indepentspaces(QM)
+
+    # Compute the subspaces of the given `restriction_space` and rembember all independnet ones
+    Subs_lists = subspaces_fix_space(restriction_space) 
+    Indeps_restriction_space = AbstractVector{fpMatrix}([])
+    for elm in Subs_lists
+        for x in elm
+            if x in Indeps
+                push!(Indeps_restriction_space,x)
+            end
+        end
+    end
+
+    # Compute the bases
+    max_dim_spaces_indices = findall(y->rank(y)==maximum(z->rank(z),Indeps_restriction_space),Indeps_restriction_space)
+    Sorted_indeps = Indeps_restriction_space[max_dim_spaces_indices]                                  
+    Bases_restriction_space = AbstractVector{fpMatrix}([x for x in Sorted_indeps])
+
+    return Embedded_q_Matroid(restriction_space,Bases_restriction_space)
+
+end
 ################################################################################
