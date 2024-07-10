@@ -12,7 +12,7 @@ using InvertedIndices
 include("./q_matroids.jl")
 
 @doc raw"""
-    Q_Matroid_Indepentspaces(QM::Q_Matroid)
+    Q_Matroid_Independentspaces(QM::Q_Matroid)
 
     This returns the Indepentspaces of the Q-Matroid.
 """
@@ -21,7 +21,7 @@ include("./q_matroids.jl")
 # (2) using `base_ring`-func. instead of old struct `field`-attribute
 # (3) got rid of in-func. varible `Field`
 
-function Q_Matroid_Indepentspaces(QM::Q_Matroid)
+function Q_Matroid_Independentspaces(QM::Q_Matroid)
     Bases = QM.bases
 
     q_mat_indep_spaces = AbstractVector{fpMatrix}([])
@@ -43,7 +43,7 @@ end
 
 
 @doc raw"""
-    Q_Matroid_Depentspaces(QM::Q_Matroid, sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
+    Q_Matroid_Dependentspaces(QM::Q_Matroid, sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
 
     This returns the Depentspaces of the Q-Matroid.
 """
@@ -52,7 +52,7 @@ end
 # (2) using `base_ring`-func. instead of old struct `field`-attribute
 # (3) renamed the `choice-variable to `sub_lat`
 
-function Q_Matroid_Depentspaces(QM::Q_Matroid,sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
+function Q_Matroid_Dependentspaces(QM::Q_Matroid,sub_lat=nothing::Union{Nothing,AbstractVector{fpMatrix}})
     Field = base_ring(QM.bases[1])
     dim = ncols(QM.groundspace)
     q_mat_dep_spaces = AbstractVector{fpMatrix}([])
@@ -64,7 +64,7 @@ function Q_Matroid_Depentspaces(QM::Q_Matroid,sub_lat=nothing::Union{Nothing,Abs
     end
 
     # Compute independent-space
-    Indeps = Q_Matroid_Indepentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
 
     # Decide wether a space is in Indeps or not
     for elm in all_subs
@@ -89,7 +89,7 @@ end
 # (2) got rid of in-func. varible `Field`
 
 function Q_Matroid_Loopspace(QM::Q_Matroid)
-    Deps = Q_Matroid_Depentspaces(QM)
+    Deps = Q_Matroid_Dependentspaces(QM)
 
     if Deps != []
         min_dim = minimum(y->rank(y),Deps)
@@ -122,8 +122,8 @@ function Q_Matroid_Ranks(QM::Q_Matroid, Space::fpMatrix, indeps=nothing::Union{N
 
     # Check if the optional arguments are used
     if isnothing(indeps) && isnothing(deps)
-        Indeps = Q_Matroid_Indepentspaces(QM)
-        Deps = Q_Matroid_Indepentspaces(QM)
+        Indeps = Q_Matroid_Independentspaces(QM)
+        Deps = Q_Matroid_Dependentspaces(QM)
     else
         Indeps = indeps
         Deps = deps
@@ -169,8 +169,8 @@ end
 # (2) got rid of in-func. varible `Field`
 
 function Q_Matroid_Circuits(QM::Q_Matroid)
-    Indeps = Q_Matroid_Indepentspaces(QM)
-    Deps = Q_Matroid_Depentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
+    Deps = Q_Matroid_Dependentspaces(QM)
     q_mat_circuits = AbstractVector{fpMatrix}([])
     not_correct_spaces = []
 
@@ -212,8 +212,8 @@ end
 # Completely new version
 
 function Q_Matroid_CircuitsV2(QM::Q_Matroid)
-    Indeps = Q_Matroid_Indepentspaces(QM)
-    Deps = Q_Matroid_Depentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
+    Deps = Q_Matroid_Dependentspaces(QM)
     q_mat_circuits = AbstractVector{fpMatrix}([])
 
     for dep_space in Deps
@@ -279,8 +279,8 @@ function Q_Matroid_Closure_Function(QM::Q_Matroid, space::fpMatrix)
     # zero_vec = zero_mat[1,:]
 
     # Compute Indeps and Deps for rank function
-    Indeps = Q_Matroid_Indepentspaces(QM)
-    Deps = Q_Matroid_Depentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
+    Deps = Q_Matroid_Dependentspaces(QM)
 
     # Compute current rank of given space
     space_rank = Q_Matroid_Ranks(QM,space,Indeps,Deps)
@@ -399,8 +399,8 @@ function Q_Matroid_Flats(QM::Q_Matroid)
     Field = base_ring(QM.groundspace)
     n = ncols(Bases[1])
 
-    indeps = Q_Matroid_Indepentspaces(QM)
-    deps =  Q_Matroid_Depentspaces(QM)
+    indeps = Q_Matroid_Independentspaces(QM)
+    deps =  Q_Matroid_Dependentspaces(QM)
     one_spaces = subspaces_fix_dim(Field,1,n)
     all_spaces = all_subspaces(Field,n)
 
@@ -502,8 +502,8 @@ function Q_Matroid_Spanningspaces(QM::Q_Matroid)
     Field = base_ring(QM.groundspace)
     q_rank = rank(Bases[1]) 
     dim =  ncols(Bases[1])
-    indeps = Q_Matroid_Indepentspaces(QM)
-    deps = Q_Matroid_Depentspaces(QM)
+    indeps = Q_Matroid_Independentspaces(QM)
+    deps = Q_Matroid_Dependentspaces(QM)
     all_subs = all_subspaces(Field,dim)
 
     # Push all spaces with have rank equal to `q_rank`
@@ -713,11 +713,11 @@ end
 # None
 
 function Are_isom_q_matroids(QM1::Q_Matroid, QM2::Q_Matroid)
-    indeps_1 = Q_Matroid_Indepentspaces(QM1) 
-    deps_1 = Q_Matroid_Depentspaces(QM1)
+    indeps_1 = Q_Matroid_Independentspaces(QM1) 
+    deps_1 = Q_Matroid_Dependentspaces(QM1)
     lat_1 = Q_Matroid_lattice(QM1,indeps_1,deps_1,"no")
-    indeps_2 = Q_Matroid_Indepentspaces(QM2)
-    deps_2 = Q_Matroid_Depentspaces(QM2)
+    indeps_2 = Q_Matroid_Independentspaces(QM2)
+    deps_2 = Q_Matroid_Dependentspaces(QM2)
     lat_2 = Q_Matroid_lattice(QM2,indeps_2,deps_2,"no")
 
     return Graphs.Experimental.has_isomorph(lat_1,lat_2)
@@ -733,11 +733,11 @@ end
 function Are_isom_q_matroidsV2(QM1::Q_Matroid, QM2::Q_Matroid, lats=nothing::Union{Nothing,AbstractVector{SimpleGraph}})
     
     if isnothing(lats)
-        indeps_1 = Q_Matroid_Indepentspaces(QM1) 
-        deps_1 = Q_Matroid_Depentspaces(QM1)
+        indeps_1 = Q_Matroid_Independentspaces(QM1) 
+        deps_1 = Q_Matroid_Dependentspaces(QM1)
         l1 = Q_Matroid_lattice(QM1,indeps_1,deps_1,"no")
-        indeps_2 = Q_Matroid_Indepentspaces(QM2)
-        deps_2 = Q_Matroid_Depentspaces(QM2)
+        indeps_2 = Q_Matroid_Independentspaces(QM2)
+        deps_2 = Q_Matroid_Dependentspaces(QM2)
         l2 = Q_Matroid_lattice(QM2,indeps_2,deps_2,"no")
 
         # Transform Graph.jl Graphs to Oscar Graphs
@@ -814,8 +814,8 @@ function Isom_classes_from_mats(list_matrices::AbstractVector{fqPolyRepMatrix})
     # Create dict
     for (id,matrix) in enumerate(list_matrices)
         QM = q_matroid_from_matrix(matrix)
-        indeps = Q_Matroid_Indepentspaces(QM)
-        deps = Q_Matroid_Depentspaces(QM)
+        indeps = Q_Matroid_Independentspaces(QM)
+        deps = Q_Matroid_Dependentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
         merge!(matrices_dict,Dict(id=>[matrix,QM,indeps,deps,graph]))
     end
@@ -884,8 +884,8 @@ function Isom_classes_from_matsV2(list_matrices::AbstractVector{fqPolyRepMatrix}
     # Create dict
     for (id,matrix) in enumerate(list_matrices)
         QM = q_matroid_from_matrix(matrix)
-        indeps = Q_Matroid_Indepentspaces(QM)
-        deps = Q_Matroid_Depentspaces(QM)
+        indeps = Q_Matroid_Independentspaces(QM)
+        deps = Q_Matroid_Dependentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
 
         # Transform Graph.jl Graphs to Oscar Graphs
@@ -974,8 +974,8 @@ function Isom_classes_from_bases(List_bases::AbstractVector{AbstractVector{fpMat
     # Create dict
     for (id,elm) in enumerate(List_bases)
         QM = Q_Matroid(id_mat,elm)
-        indeps = Q_Matroid_Indepentspaces(QM)
-        deps = Q_Matroid_Depentspaces(QM)
+        indeps = Q_Matroid_Independentspaces(QM)
+        deps = Q_Matroid_Dependentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
         merge!(Bases_dict,Dict(id=>[QM,indeps,deps,graph]))
     end
@@ -1044,8 +1044,8 @@ function Isom_classes_from_basesV2(List_bases::AbstractVector{AbstractVector{fpM
     # Create dict
     for (id,elm) in enumerate(List_bases)
         QM = Q_Matroid(id_mat,elm)
-        indeps = Q_Matroid_Indepentspaces(QM)
-        deps = Q_Matroid_Depentspaces(QM)
+        indeps = Q_Matroid_Independentspaces(QM)
+        deps = Q_Matroid_Dependentspaces(QM)
         graph = Q_Matroid_lattice(QM,indeps,deps,"no")
 
         # Transform Graph.jl Graphs to Oscar Graphs
@@ -1409,7 +1409,7 @@ function Is_representable(QM::Q_Matroid)
         return "Q-Matroid is representable by $(ms(0))!!"
     else
         G,R,var = Simplyfy_rep_mat(QM)
-        deps = Q_Matroid_Depentspaces(QM)
+        deps = Q_Matroid_Dependentspaces(QM)
         text,I = Is_representable_midstep(QM,deps,G,R,var)
 
         return text, I
@@ -1519,9 +1519,9 @@ function Q_Higgs_lift(QM1::Q_Matroid, QM2::Q_Matroid)
     ms = matrix_space(Field,1,dim)
     zero_vec = ms(0)
     
-    Indeps_1 = Q_Matroid_Indepentspaces(QM1)
-    Indeps_2 = Q_Matroid_Indepentspaces(QM2)
-    Deps_1 = Q_Matroid_Depentspaces(QM1)
+    Indeps_1 = Q_Matroid_Independentspaces(QM1)
+    Indeps_2 = Q_Matroid_Independentspaces(QM2)
+    Deps_1 = Q_Matroid_Dependentspaces(QM1)
     Q_Higgs_lift_bases = AbstractVector{fpMatrix}([])
 
     # Construct all subspaces

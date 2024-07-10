@@ -227,6 +227,263 @@ end
 ################################################################################
 
 
+@doc raw"""
+    Are_q_matroid_hyperplanes(Hyperp::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+
+    Returns if the inputed list of spaces form the set of Hyperplanes of a Q-Matroid.
+
+    For the choice you can choose "yes" and if the list is not the set of Hyperplanes of a Q-Matroid, it will return also which axiom of (H1)-(H3) fails.
+"""
+# Changes to old version:
+# There is no old version
+
+# field-var def via first elm in `Deps`-list: possible issue if this list is empty
+
+function Are_q_matroid_hyperplanes(Hyperps::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+
+    if Hyperps == []
+        if isnothing(choice)
+            return true
+        elseif choice == "Yes"
+            return true, "Non"
+        end
+    else
+        Hyperps = sort(Hyperps,by = x -> rank(x))
+        field = base_ring(Hyperps[1])
+        are_hyperps = true
+        fail = "Non"
+
+        dim = ncols(Hyperps[1])
+        id_mat = matrix_space(field,dim,dim)(1)
+
+        # Check Axiom (H1)
+        if id_mat in Hyperps
+            are_hyperps = false
+            fail = "Axiom (H1)"
+        end
+
+        # Check Axiom (H2)
+        Hyperps_sets = sort([subspace_set(space) for space in Hyperps],by = x->length(x))
+        if are_hyperps
+            for combi in combinations(Hyperps_sets,2)
+                if length(combi[1]) != length(combi[2])
+                    if issubset(combi[1],combi[2])
+                        are_hyperps = false
+                        fail = "Axiom (H2)"
+                        break
+                    end
+                end
+            end
+        end
+        
+        # Check Axiom (H3)
+        if are_hyperps
+            one_spaces = subspaces_fix_dim(field,1,dim)
+            loop_breaker = false
+            for combi in combinations(Hyperps,2)
+                if !(loop_breaker)
+                    inters = inters_vsV3(combi[1],combi[2])
+                    for one_sp in one_spaces
+                        sum = sum_vsV2(inters,one_sp)
+                        sum_set = subspace_set(sum)
+                        count = 0
+                        for set in Hyperps_sets
+                            if issubset(sum_set,set)
+                                count += 1
+                            end
+                        end
+                        if count == 0
+                            are_hyperps = false
+                            loop_breaker = true
+                            fail = "Axiom (H3)"
+                            break
+                        end
+                    end
+                else
+                    break
+                end
+            end
+        end
+
+        if isnothing(choice)
+            return are_hyperps
+        elseif choice == "Yes"
+            return are_hyperps,fail
+        end
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
+    Are_q_matroid_bases(Bases::AbstractVector{fpMatrix}, choice=nothing::Union{Nothing,String})
+
+    Returns if the inputed list of spaces form the set of Bases of a Q-Matroid.
+
+    The `Bases`-List has to contain at least one element and all its elements should have the same dimension.
+"""
+# Changes to old version:
+# There is no old version
+
+# field-var def via first elm in `Deps`-list: possible issue if this list is empty
+
+function  Are_q_matroid_bases(Bases::AbstractVector{fpMatrix})
+    field = base_ring(Bases[1])
+    dim = ncols(Bases[1])
+    q_rank = rank(Bases[1])
+
+    if Set(Bases) == Set(Uniform_q_matroid(field,q_rank,dim).bases)
+        return true
+    else
+        E = matrix_space(field,dim,dim)(1)
+        are_bases = true
+
+        # Get all codim 1 spaces of E
+        codim_ones_E = codim_one_subs(E)
+        Dict_codim_one_E = OrderedDict([id=>[space,subspace_set(space)] for (id,space) in enumerate(codim_ones_E)])
+        
+        # Get all codim 1 spaces of all elements in Bases
+        Info_dict_bases = OrderedDict([])
+        for (id,space) in enumerate(Bases)
+            codim_ones = codim_one_subs(space)
+            list = [[x,subspace_set(x)] for x in codim_ones]
+            merge!(Info_dict_bases,Dict([id=>[space,subspace_set(space),list]]))
+        end
+
+        # Get all one spaces
+        one_spaces = subspaces_fix_dim(field,1,dim)
+        Dict_one_spaces = OrderedDict([id=>[space,subspace_set(space)] for (id,space) in enumerate(one_spaces)])
+        
+        # Check (nB3) for B_1=B_2
+        loop_breaker = true
+        for pair in Info_dict_bases
+            if loop_breaker
+                for elm in pair[2][3]
+                    count = 0
+                    for tuple in Dict_codim_one_E
+                        if count != 0
+                            break
+                        else
+                            if issubset(elm[2],tuple[2][2]) && !(issubset(pair[2][2],tuple[2][2]))
+                                counter = 0
+                                for arr in Dict_one_spaces
+                                    if !(issubset(arr[2][2],tuple[2][2]))
+                                        sum = sum_vsV2(elm[1],arr[2][1])
+                                        if !(sum in Bases)
+                                            counter +=1
+                                            break
+                                        end
+                                    end
+                                end
+                                if counter == 0
+                                    count +=1
+                                end
+                            end
+                        end
+                    end
+                    if count == 0
+                        are_bases = false
+                        loop_breaker = false
+                        break
+                    end
+                end
+            else
+                break
+            end
+        end
+
+        if are_bases
+
+        # Check (nB3) for distinct B_1, B_2
+            loop_breaker = true
+            for pair in combinations(Info_dict_bases,2)
+                if loop_breaker
+                    for elm in pair[1][3]
+                        count = 0
+                        for tuple in Dict_codim_one_E
+                            if count != 0
+                                break
+                            else
+                                if issubset(elm[2],tuple[2][2]) && !(issubset(pair[2][2],tuple[2][2]))
+                                    counter = 0
+                                    for arr in Dict_one_spaces
+                                        if !(issubset(arr[2][2],tuple[2][2]))
+                                            sum = sum_vsV2(elm[1],arr[2][1])
+                                            if !(sum in Bases)
+                                                counter +=1
+                                                break
+                                            end
+                                        end
+                                    end
+                                    if counter == 0
+                                        count +=1
+                                    end
+                                end
+                            end
+                        end
+                        if count == 0
+                            are_bases = false
+                            loop_breaker = false
+                            break
+                        end
+                    end
+                else
+                    break
+                end
+            end
+
+            if are_bases
+            
+            # Symmeric Cases
+                loop_breaker = true
+                for pair in combinations(Info_dict_bases,2)
+                    if loop_breaker
+                        for elm in pair[2][3]
+                            count = 0
+                            for tuple in Dict_codim_one_E
+                                if count != 0
+                                    break
+                                else
+                                    if issubset(elm[2],tuple[2][2]) && !(issubset(pair[1][2],tuple[2][2]))
+                                        counter = 0
+                                        for arr in Dict_one_spaces
+                                            if !(issubset(arr[2][2],tuple[2][2]))
+                                                sum = sum_vsV2(elm[1],arr[2][1])
+                                                if !(sum in Bases)
+                                                    counter +=1
+                                                    break
+                                                end
+                                            end
+                                        end
+                                        if counter == 0
+                                            count +=1
+                                        end
+                                    end
+                                end
+                            end
+                            if count == 0
+                                are_bases = false
+                                loop_breaker = false
+                                break
+                            end
+                        end
+                    else
+                        break
+                    end
+                end
+                return are_bases
+            else
+                return are_bases
+            end
+        else
+            return are_bases
+        end
+    end
+
+end
+
+
 
 ################################################################################
 # Restriction/Contraction section
@@ -268,7 +525,7 @@ end
 # There is no old version
 
 function Restriction_Q_Matroid(QM::Q_Matroid, restriction_space::fpMatrix)
-    Indeps = Q_Matroid_Indepentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
 
     # Compute the subspaces of the given `restriction_space` and rembember all independnet ones
     Subs_lists = subspaces_fix_space(restriction_space) 

@@ -299,7 +299,7 @@ function EN_LIFO(Current_node::Node,
             if node in V_Results
                 continue
             else
-                maxis = [node.indeps[x] for x in findall(y->length(y)==maximum(length,node.indeps),node.indeps)]
+                #maxis = [node.indeps[x] for x in findall(y->length(y)==maximum(length,node.indeps),node.indeps)]
                 entry = Resultlist_entry(node.indeps,node.deps,maxis)
                 push!(Result_list,entry)
                 push!(V_Results,node)
@@ -322,8 +322,8 @@ function EN_q_matroid_DFS(QM::Q_Matroid)
     Init_Dim = ncols(QM.groundspace)
     Init_Field = base_ring(QM.groundspace)
     Init_char = Int(characteristic(Init_Field))
-    Init_Indeps = Q_Matroid_Indepentspaces(QM)
-    Init_Deps = Q_Matroid_Depentspaces(QM)
+    Init_Indeps = Q_Matroid_Independentspaces(QM)
+    Init_Deps = Q_Matroid_Dependentspaces(QM)
 
     # Transform the intial Input
     Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,Init_Dim+1)

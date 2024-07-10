@@ -55,8 +55,8 @@ function Add_entry(QM::Q_Matroid, db:: SQLite.DB, con::Module, table_name="q_Mat
     Dim = ncols(QM.groundspace)
     Bases = QM.bases
     q_Rank = rank(Bases[1])
-    Indeps = Q_Matroid_Indepentspaces(QM)
-    Deps = Q_Matroid_Depentspaces(QM)
+    Indeps = Q_Matroid_Independentspaces(QM)
+    Deps = Q_Matroid_Dependentspaces(QM)
     all_sp = subspaces_fix_dim(Field,q_Rank,Dim)
 
     # Helper for removing ugly string notation in the entry

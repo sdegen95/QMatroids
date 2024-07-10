@@ -336,8 +336,8 @@ end
 
 function Dim3_q_matroid_DFS(QM::Q_Matroid)
     Field = base_ring(QM.groundspace)
-    Init_Indeps = Q_Matroid_Indepentspaces(QM)
-    Init_Deps = Q_Matroid_Depentspaces(QM)
+    Init_Indeps = Q_Matroid_Independentspaces(QM)
+    Init_Deps = Q_Matroid_Dependentspaces(QM)
 
     Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,3)
 
@@ -631,8 +631,8 @@ end
 
 function Dim4_q_matroid_DFS(QM::Q_Matroid)
     Field = base_ring(QM.groundspace)
-    Init_Indeps = Q_Matroid_Indepentspaces(QM)
-    Init_Deps = Q_Matroid_Depentspaces(QM)
+    Init_Indeps = Q_Matroid_Independentspaces(QM)
+    Init_Deps = Q_Matroid_Dependentspaces(QM)
 
     Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,4)
 
@@ -984,8 +984,8 @@ end
 
 function Dim5_q_matroid_DFS(QM::Q_Matroid)
     Field = base_ring(QM.groundspace)
-    Init_Indeps = Q_Matroid_Indepentspaces(QM)
-    Init_Deps = Q_Matroid_Depentspaces(QM)
+    Init_Indeps = Q_Matroid_Independentspaces(QM)
+    Init_Deps = Q_Matroid_Dependentspaces(QM)
 
     Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,5)
 
@@ -1465,8 +1465,8 @@ function En_q_matroid_DFS(QM::Q_Matroid)
     Init_Dim = ncols(QM.groundspace)
     Init_Field = base_ring(QM.groundspace)
     Init_char = Int(characteristic(Init_Field))
-    Init_Indeps = Q_Matroid_Indepentspaces(QM)
-    Init_Deps = Q_Matroid_Depentspaces(QM)
+    Init_Indeps = Q_Matroid_Independentspaces(QM)
+    Init_Deps = Q_Matroid_Dependentspaces(QM)
 
     # Transform the intial Input
     Trans_Indeps = standard_embedding_higher_dim(Init_Indeps,Init_Dim+1)
