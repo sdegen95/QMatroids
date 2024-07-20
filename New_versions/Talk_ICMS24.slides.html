@@ -7441,7 +7441,7 @@ main {
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="$q$-Matroids-in-Julia/Oscar"><strong>$q$-Matroids in Julia/Oscar</strong><a class="anchor-link" href="#$q$-Matroids-in-Julia/Oscar">¶</a></h1><h3>
-<p>Sebastian Degen, Bielefeld University</p>
+<p>Sebastian Degen, Bielefeld University, CRC TRR 358</p>
 </h3>
 </div>
 </div>
@@ -7548,7 +7548,7 @@ $$</p>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [51]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># q=2,n=3,k=2</span>
@@ -7589,11 +7589,8 @@ $$</p>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h4>
-<p><strong>Notation:</strong></p>
-<ul>
-<li>$V\leq W\hat{=}$ the subspace $V$ is contained in the subspace $W$.</li>
-<li>$\mathcal{L}(\mathbb{F}_q^n)\hat{=}$ subspace lattice, i.e., set of all subspaces of $\mathbb{F}_q^n$ ordered by $\leq$.</li>
-</ul>
+<p><strong>Notation:</strong> $\quad\mathcal{L}(\mathbb{F}_q^n)\hat{=}$ subspace lattice, i.e., set of all subspaces of $\mathbb{F}_q^n$ ordered by $\leq$.</p>
+<!-- $V\leq W\hat{=}$ the subspace $V$ is contained in the subspace $W$. -->
 </h4>
 </div>
 </div>
@@ -7748,7 +7745,7 @@ For every dimension $0\leq k\leq n$, we always represent a $k$-space $V\in\mathc
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [52]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Check if the given collection is a bases collection</span>
@@ -7778,7 +7775,7 @@ For every dimension $0\leq k\leq n$, we always represent a $k$-space $V\in\mathc
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [53]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Construct the q-matroid</span>
@@ -7837,7 +7834,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [54]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Construct uniform q-matroid</span>
@@ -7865,7 +7862,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [55]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Check the ranks of a few subspaces</span>
@@ -7930,11 +7927,6 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <td style="text-align:left">Space contained in no bases.</td>
 </tr>
 <tr>
-<td style="text-align:center"><strong>Loop</strong></td>
-<td style="text-align:left">$x\in\mathcal{L}(E)$ s.t. $\dim(x)=1$ and $x$ dep.</td>
-<td style="text-align:left">One-space contained in no bases.</td>
-</tr>
-<tr>
 <td style="text-align:center"><strong>Circuit</strong></td>
 <td style="text-align:left">$C\in\mathcal{L}(E)$ s.t. every subspace is indep.</td>
 <td style="text-align:left">Minimal dep. space w.r.t. $\leq$</td>
@@ -7946,6 +7938,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 </tr>
 </tbody>
 </table>
+<!-- |**Loop**|$x\in\mathcal{L}(E)$ s.t. $\dim(x)=1$ and $x$ dep.|One-space contained in no bases.| -->
 </h4>
 </div>
 </div>
@@ -7958,7 +7951,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h4>
-<p><strong>Note:</strong> All these notions, except the loops, provide $q$-cryptomorphisms of $\mathcal{M}$.</p>
+<p><strong>Note:</strong> All these notions provide $q$-cryptomorphisms of $\mathcal{M}$.</p>
 <!-- * *Loops come in subspace*, i.e., if $x,y$ are loops then $\rho(x+y)=0$. -->
 </h4>
 </div>
@@ -7980,7 +7973,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [56]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># UQM2</span>
@@ -8008,7 +8001,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [57]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Indep. spaces</span>
@@ -8035,7 +8028,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [58]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Dep. spaces</span>
@@ -8063,34 +8056,7 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [59]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-julia"><pre><span></span><span class="c"># Loops</span>
-<span class="n">Q_Matroid_Loopspace</span><span class="p">(</span><span class="n">UQM2</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Any[]</pre>
-</div>
-</div>
-</div>
-</div>
-</div><div class="fragment"><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [60]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Circuits</span>
@@ -8113,12 +8079,12 @@ For $0\leq k\leq n$ <em>the uniform $q$-matroid</em> is defined as $\;\mathcal{U
 </div>
 </div>
 </div>
-</div></div><div class="fragment"><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="fragment"><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [61]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Flats</span>
@@ -8234,7 +8200,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [65]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [16]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># q-matroid from matrix</span>
@@ -8263,7 +8229,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [66]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [17]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Bases QM</span>
@@ -8354,10 +8320,10 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h4>
-<p><strong>Algo:</strong></p>
+<p><strong>Algo:</strong> $\quad\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$.</p>
+<!-- * *Setup:*   $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$. -->
 <ul>
-<li><em>Setup:</em>   $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$.</li>
-<li><em>Input:</em>   $\mathcal{B}$ of $\mathcal{M}$</li>
+<li><em>Input:</em>   $\mathcal{B}$ of $\mathcal{M}$.</li>
 <li><em>Output:</em> <code>True</code> or <code>False</code></li>
 <li><em>Idea:</em><ul>
 <li>Check if ex. $\tilde{G}\in\mathbb{F}_{q^m}^{k\times n}$ for some $m\geq 1$ s.t. $\rho(V)=\text{rk}(\tilde{G}V^T)$.</li>
@@ -8368,10 +8334,10 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 </li>
 <li>Consider $S=\bar{\mathbb{F}_q}[x,z]=\bar{\mathbb{F}_q}[x_{i,j},z\;|\;1\leq i\leq k,1\leq j\leq n]$ and $G=(x_{i,j})\in(\bar{\mathbb{F}_q}[x,z])^{k\times n}$.<ul>
 <li>For all $B\in\mathcal{B},D\in\mathcal{NB}$ define: $$P_B(x,z):=\det(GB^T)\;\text{ and }\; P_D(x,z):=\det(GD^T).$$</li>
-<li>Define: $$R(x,z)=\prod_{B\in\mathcal{B}}P_B(x,z)\cdot z-1\;\text{ and }\; I:=(R,P_D\;|\;D\in\mathcal{NB})$$</li>
+<li>Define: $$R(x,z)=z \cdot \Big(\prod_{B\in\mathcal{B}}P_B\Big)-1\;\text{ and }\; I:=(R,P_D\;|\;D\in\mathcal{NB}).$$</li>
 </ul>
 </li>
-<li>Check if $\mathcal{V}(I)$ is empty: $$\mathcal{V}(I)=\emptyset\Longleftrightarrow 1\in I\quad\text{by weak Hilbert N.S.-Satz}.$$</li>
+<li>Check if $\mathcal{V}(I)$ is empty: $$\mathcal{V}(I)=\emptyset\Longleftrightarrow 1\in I\quad\text{by weak Hilbert Nullstellen-Satz}.$$</li>
 </ul>
 </li>
 </ul>
@@ -8395,7 +8361,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [70]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [21]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># UQM2</span>
@@ -8424,7 +8390,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [71]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [22]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Check for representability</span>
@@ -8451,7 +8417,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [72]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [23]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># QM2</span>
@@ -8486,7 +8452,7 @@ A $q$-matroid $\mathcal{M}=(\mathbb{F}_q^n,\rho)$ of rank $k$ is <em>$\mathbb{F}
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [73]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [24]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-julia"><pre><span></span><span class="c"># Check for representability</span>
