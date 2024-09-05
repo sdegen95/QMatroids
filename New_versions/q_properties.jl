@@ -470,6 +470,217 @@ end
 
 
 @doc raw"""
+    Liftig_linear_q_subclasses(QM::Q_Matroid, LqSC::Union{AbstractVector, AbstractVector{fpMatrix}}, vec=nothing::Union{Nothing,fpMatrix}, Low=true::Bool)
+
+    
+"""
+# Changes to old version:
+# There is no old version
+
+function Liftig_linear_q_subclasses(QM::Q_Matroid, LqSC::Union{AbstractVector, AbstractVector{fpMatrix}}, vec=nothing::Union{Nothing,fpMatrix}, Low=true::Bool)
+    dim = ncols(QM.groundspace)
+    field = base_ring(QM.groundspace)
+    HPS = Q_Matroid_Hyperplanes(QM)
+
+    # Define the embedding Hyperplane set
+    if LqSC == []
+        NHPS = standard_embedding_higher_dimV2(HPS,dim+1)
+    else
+        if isnothing(vec)
+            # Get (0,...,0,1) vector
+            unit_vec = matrix_space(field,dim+1,dim+1)(1)[dim+1,:]
+        else
+            unit_vec = vec
+        end
+
+        # Compute the rest
+        Comp = AbstractVector{fpMatrix}([x for x in HPS if !(x in LqSC)])
+        if Comp == []
+            NHPS = Comp
+        else
+            NHPS = standard_embedding_higher_dimV2(Comp,dim+1)
+        end
+
+        for space in LqSC
+            emb_space = standard_embedding_higher_dimV2(AbstractVector{fpMatrix}([space]),dim+1)[1]
+            sum = sum_vsV2(emb_space,unit_vec)
+            push!(NHPS,sum)
+        end
+    end
+
+    # Completion of NHPS w.r.t. the Hyperplane-Axiom (H3)
+    if Are_q_matroid_hyperplanes(NHPS)
+        return NHPS
+    else
+        one_spaces = subspaces_fix_dim(field,1,dim+1)
+        Completion = NHPS
+        for combi in combinations(Completion,2)
+            inters = inters_vsV3(combi[1],combi[2])
+            ones = dim_one_subs(inters)
+            leftoverones = [x for x in one_spaces if !(x in ones)]
+            for z in leftoverones
+                sum = sum_vsV2(inters, z)
+                if !(sum in Completion)
+                    push!(Completion,sum)
+                end
+            end
+        end
+        Completion = unique(Completion)
+
+        # one_spaces = subspaces_fix_dim(field,1,dim+1)
+        # Completion = NHPS
+        # combis = collect(combinations(Completion,2))
+        # already_seen = []
+        # for combi in combis
+        #     if Are_q_matroid_hyperplanes(Completion)
+        #         break
+        #     else
+        #         if !(combi in already_seen)
+        #             push!(already_seen, combi)
+        #             inters = inters_vsV3(combi[1],combi[2])
+        #             ones = dim_one_subs(inters)
+        #             leftoverones = [x for x in one_spaces if !(x in ones)]
+        #             for z in leftoverones
+        #                 sum = sum_vsV2(inters, z)
+        #                 if !(sum in Completion)
+        #                     push!(Completion,sum)
+        #                 end
+        #             end
+        #             new_combis = collect(combinations(Completion,2))
+        #             for x in new_combis
+        #                 if !(x in combis)
+        #                     push!(combis,x)
+        #                 end
+        #             end
+        #         end
+        #     end
+        # end
+
+        # Check for subspace relation and always keep the higher or lower dimensional space if there is one
+        Completion_list = [[x, rank(x), subspace_set(x)] for  x in Completion]
+        Remove_list = []
+        for combi in combinations(Completion_list,2)
+            if Low
+                if issubset(combi[1][3],combi[2][3]) || issubset(combi[2][3],combi[1][3])
+                    if combi[1][2] >= combi[2][2]
+                        push!(Remove_list,combi[2][1])
+                    elseif combi[2][2] > combi[1][2]
+                        push!(Remove_list,combi[1][1])
+                    end
+                end
+            elseif Low == false
+                if issubset(combi[1][3],combi[2][3]) || issubset(combi[2][3],combi[1][3])
+                    if combi[1][2] <= combi[2][2]
+                        push!(Remove_list,combi[2][1])
+                    elseif combi[2][2] < combi[1][2]
+                        push!(Remove_list,combi[1][1])
+                    end
+                end
+            end
+        end
+
+        return [x[1] for x in Completion_list if !(x[1] in Remove_list)]
+    end
+
+end
+
+
+@doc raw"""
+    Liftig_linear_q_subclassesV2(QM::Q_Matroid,
+                                 HPSsubset::Union{AbstractVector, AbstractVector{fpMatrix}},
+                                 LqSC::Union{AbstractVector, AbstractVector{fpMatrix}},
+                                 Low=true::Bool)
+
+    
+"""
+# Alternative version
+
+function Liftig_linear_q_subclassesV2(QM::Q_Matroid,
+                                      HPSsubset::Union{AbstractVector, AbstractVector{fpMatrix}},
+                                      LqSC::Union{AbstractVector, AbstractVector{fpMatrix}},
+                                      Low=true::Bool)
+    dim = ncols(QM.groundspace)
+    field = base_ring(QM.groundspace)
+    HPS = HPSsubset
+
+    # Define the embedding Hyperplane set
+    if LqSC == []
+        NHPS = standard_embedding_higher_dimV2(HPS,dim+1)
+    else
+        # Get (0,...,0,1) vector
+        unit_vec = matrix_space(field,dim+1,dim+1)(1)[dim+1,:]
+
+        # Compute the rest
+        if HPS == []
+            NHPS = AbstractVector{fpMatrix}(HPS)
+        else
+            NHPS = standard_embedding_higher_dimV2(HPS,dim+1)
+        end
+
+        for space in LqSC
+            emb_space = standard_embedding_higher_dimV2(AbstractVector{fpMatrix}([space]),dim+1)[1]
+            sum = sum_vsV2(emb_space,unit_vec)
+            push!(NHPS,sum)
+        end
+    end
+    # min_dim = minimum(rank,NHPS)
+
+    # Completion of NHPS w.r.t. the Hyperplane-Axiom (H3)
+    if Are_q_matroid_hyperplanes(NHPS)
+        return NHPS
+    else
+        one_spaces = subspaces_fix_dim(field,1,dim+1)
+        Completion = NHPS
+        for combi in combinations(Completion,2)
+            inters = inters_vsV3(combi[1],combi[2])
+            ones = dim_one_subs(inters)
+            leftoverones = [x for x in one_spaces if !(x in ones)]
+            for z in leftoverones
+                sum = sum_vsV2(inters, z)
+                super_sp = containments_fix_space(sum)
+                if intersect(Completion,super_sp) == []
+                    for x in super_sp
+                        if rank(x) == rank(sum)
+                            push!(Completion, x)
+                
+                        end
+                    end
+                end
+            end
+        end
+        Completion = unique(Completion)
+
+        # Check for subspace relation and always keep the higher or lower dimensional space if there is one
+        Completion_list = [[x, rank(x), subspace_set(x)] for  x in Completion]
+        Remove_list = []
+        for combi in combinations(Completion_list,2)
+            if Low
+                if issubset(combi[1][3],combi[2][3]) || issubset(combi[2][3],combi[1][3])
+                    if combi[1][2] >= combi[2][2]
+                        push!(Remove_list,combi[2][1])
+                    elseif combi[2][2] > combi[1][2]
+                        push!(Remove_list,combi[1][1])
+                    end
+                end
+            elseif Low == false
+                if issubset(combi[1][3],combi[2][3]) || issubset(combi[2][3],combi[1][3])
+                    if combi[1][2] <= combi[2][2]
+                        push!(Remove_list,combi[2][1])
+                    elseif combi[2][2] < combi[1][2]
+                        push!(Remove_list,combi[1][1])
+                    end
+                end
+            end
+        end
+
+        return [x[1] for x in Completion_list if !(x[1] in Remove_list)]
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
     Q_Matroid_CyclicFlats(QM::Q_Matroid)
 
     This returns the CyclicFlats, i.e. flats that are open spaces as well, of the q-matroid.
@@ -566,7 +777,7 @@ function Q_Matroid_Openspaces(QM::Q_Matroid)
     Openspaces = AbstractVector{fpMatrix}([])
 
     for space in flats
-        dual_flat = orthogonal_complement(space)[1]
+        dual_flat = orthogonal_complementV2(space)[1]
         push!(Openspaces,dual_flat)
     end
 
@@ -1231,7 +1442,7 @@ function Dual_Q_Matroid(QM::Q_Matroid)
     bases_dual_q_matroid = AbstractVector{fpMatrix}([])
 
     for basis in Bases
-        dual_basis = orthogonal_complement(basis)[1]
+        dual_basis = orthogonal_complementV2(basis)[1]
         push!(bases_dual_q_matroid,dual_basis)
     end
 
@@ -1425,6 +1636,8 @@ end
     Returns if the given q-matroids happen to be q-quotients.
 
     This means that every circ of `QM2` is a sum of circ's of `QM1`.
+    
+    !! Old definition !!
 """
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
@@ -1480,7 +1693,9 @@ end
 
     Returns if the given collection of q-matroids is a q-concordant collection.
         
-    This means that every pair of distinct q-matroids from that collection are q-quotients (in one way). 
+    This means that every pair of distinct q-matroids from that collection are q-quotients (in one way).
+    
+    !! Old definition !!
 """
 # Changes to old version:
 # None
@@ -1577,5 +1792,49 @@ function Q_Matroid_Aut(QM::Q_Matroid)
     end
  
     return matrix_group(gen_mats)
+end
+################################################################################
+
+
+@doc raw"""
+    Q_Matroid_Base_polytope(QM::Q_Matroid)
+
+    Returns the q-matroid base-polytope of the given q-Matroid.
+"""
+# Changes to old version:
+# There is no old version
+
+function Q_Matroid_Base_polytope(QM::Q_Matroid)
+    Field = base_ring(QM.groundspace)
+    Dim = ncols(QM.groundspace)
+
+    # Get the bases and all one-spaces of the ambient space
+    Bases = QM.bases
+    B_card = length(Bases) 
+    one_spaces = subspaces_fix_dim(Field,1,Dim)
+    card = length(one_spaces)
+
+    # Labeled one-spaces
+    labeled_ones = [[id,elm] for (id,elm) in enumerate(one_spaces)]
+
+    # Get the indicator vector for every base-space
+    vertices = zeros(Int,B_card,card)
+    count = 1
+    for basis in Bases
+        zero_vec = zeros(Int,card)
+        one_dims = dim_one_subs(basis)
+        for x in one_dims
+            for y in labeled_ones
+                if x == y[2]
+                    zero_vec[y[1]] = 1
+                end
+            end
+        end
+        vertices[count,:] = zero_vec
+        count += 1
+    end
+
+    return Oscar.convex_hull(vertices)
+
 end
 ################################################################################

@@ -572,38 +572,38 @@ end
 ################################################################################
 
 
-# @doc raw"""
-#     gln_matrices(field::fqPolyRepField, size::Oscar.IntegerUnion)
+@doc raw"""
+    gln_matrices(field::fqPolyRepField, size::Oscar.IntegerUnion)
 
-#     Returns all gln-matrices, with entries of the given field (no extension field).
-#     `Size` has to be greater equal one.
-# """
-# # Changes to old version:
-# # There is no old version
+    Returns all gln-matrices, with entries of the given field (no extension field).
+    `Size` has to be greater equal one.
+"""
+# Changes to old version:
+# There is no old version
 
-# function gln_matrices(field::Nemo.fpField, size::Oscar.IntegerUnion)
-#     char = Int(Oscar.characteristic(field))
+function gln_matrices(field::Nemo.fpField, size::Oscar.IntegerUnion)
+    char = Int(Oscar.characteristic(field))
 
-#     # Create all possible one row matrices
-#     one_rows = AbstractVector{fpMatrix}([])
-#     for i in range(1,char^(size)-1)
-#         array = [digits(i,base=char,pad=size)]
-#         vec = matrix(field,array)
-#         push!(one_rows,vec)
-#     end
-#     one_rows = unique(one_rows)
+    # Create all possible one row matrices
+    one_rows = AbstractVector{fpMatrix}([])
+    for i in range(1,char^(size)-1)
+        array = [digits(i,base=char,pad=size)]
+        vec = matrix(field,array)
+        push!(one_rows,vec)
+    end
+    one_rows = unique(one_rows)
 
-#     # Create all possible (size x size)-matrices
-#     matrices_collec = AbstractVector{fpMatrix}([])
-#     for k in multiset_permutations(one_rows,size)
-#         new_mat = vcat(k)
-#         if rank(new_mat) == size
-#             push!(matrices_collec,new_mat)
-#         end
-#     end
+    # Create all possible (size x size)-matrices
+    matrices_collec = AbstractVector{fpMatrix}([])
+    for k in multiset_permutations(one_rows,size)
+        new_mat = vcat(k)
+        if rank(new_mat) == size
+            push!(matrices_collec,new_mat)
+        end
+    end
 
-#     return unique!(matrices_collec)
-# end
+    return unique!(matrices_collec)
+end
 ################################################################################
 
 
@@ -906,7 +906,7 @@ end
 @doc raw"""
     Orthogonal_complement(space::fpMatrix)
 
-    Returns the orthogonal complement of the `space` in a given ambient space, w.r.t. the standard dor product. 
+    Returns the orthogonal complement of the `space` in a given ambient space, w.r.t. the standard dot product. 
 """
 # Changes to old version:
 # (1) using rank instead of `subspace_dim`-func
@@ -974,9 +974,17 @@ end
 # Completely new version 
 
 function orthogonal_complementV2(A::fpMatrix)
-    r, rref_ker_A = rref(transpose(right_kernel(A)[2]))
+    field = base_ring(A)
+    dim = ncols(A)
 
-    return [rref_ker_A[1:r,:]]
+    if rank(A) == dim
+        zero_vec = matrix_space(field,1,dim)(0)
+        return [zero_vec]
+    else
+        r, rref_ker_A = rref(transpose(right_kernel(A)[2]))
+        return [rref_ker_A[1:r,:]]
+    end
+    
 end
 ################################################################################
 

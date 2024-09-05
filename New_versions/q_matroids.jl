@@ -78,6 +78,100 @@ end
 
 
 @doc raw"""
+    q_matroid_from_dependentspaces(Deps::AbstractVector{fpMatrix}, show_bases=false::Bool)
+
+    Construct a `q-matroid` from the dependentspaces.
+    
+    One can set the default-value for `show_bases` from `false` to `true`, to only show the bases of the resulting q-matroid.
+
+    All matrices in that list need to be in RRE. The list need to be non-empty.
+"""
+# Changes to old version:
+# there is no old version
+
+function q_matroid_from_dependentspaces(Deps::AbstractVector{fpMatrix}, show_bases=false::Bool)
+    field = base_ring(Deps[1])
+    dim = ncols(Deps[1])
+    all_sp = all_subspaces(field,dim)
+
+    Indeps = AbstractVector{fpMatrix}([x for x in all_sp if !(x in Deps)])
+
+    if show_bases == false
+        return  q_matroid_from_independentspaces(Indeps)
+    elseif show_bases == true
+        return q_matroid_from_independentspaces(Indeps,show_bases)
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
+    q_matroid_from_circuits(Circs::AbstractVector{fpMatrix}, show_bases=false::Bool)
+
+    Construct a `q-matroid` from the circuits.
+    
+    One can set the default-value for `show_bases` from `false` to `true`, to only show the bases of the resulting q-matroid.
+
+    All matrices in that list need to be in RREF. The list need to be non-empty.
+"""
+# Changes to old version:
+# there is no old version
+
+function q_matroid_from_circuits(Circs::AbstractVector{fpMatrix}, show_bases=false::Bool)
+    Deps = AbstractVector{fpMatrix}([])
+
+    # Compute all different superspaces of the circuits
+    for space in Circs
+        super_sp = containments_fix_space(space)
+        for x in super_sp
+            if !(x in Deps)
+                push!(Deps,x)
+            end
+        end
+    end
+
+    if show_bases == false
+        return  q_matroid_from_dependentspaces(Deps)
+    elseif show_bases == true
+        return q_matroid_from_dependentspaces(Deps,show_bases)
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
+    q_matroid_from_hyperplanes(Hyperps::AbstractVector{fpMatrix}, show_bases=false::Bool)
+
+    Construct a `q-matroid` from the hyperplanes.
+    
+    One can set the default-value for `show_bases` from `false` to `true`, to only show the bases of the resulting q-matroid.
+
+    All matrices in that list need to be in RREF. The list need to be non-empty.
+"""
+# Changes to old version:
+# there is no old version
+
+function q_matroid_from_hyperplanes(Hyperps::AbstractVector{fpMatrix}, show_bases=false::Bool)
+    # Create the dual circs and the dual q-matroids
+    Dual_Circs = AbstractVector{fpMatrix}([orthogonal_complementV2(x)[1] for x in Hyperps])
+    Dual_QM = q_matroid_from_circuits(Dual_Circs)
+
+    # Dualize again to get the normal q-matroid
+    QM = Dual_Q_Matroid(Dual_QM)
+
+    if show_bases == false
+        return QM
+    elseif show_bases == true
+        return QM.bases
+    end
+
+end
+################################################################################
+
+
+@doc raw"""
     q_matroid_from_matrix(Mat::fqPolyRepMatrix)
 
     Construct a `q-matroid` from a Matrix that represents it.
@@ -108,6 +202,86 @@ function q_matroid_from_matrix(Mat::fqPolyRepMatrix)
     end
 
     return Q_Matroid(id_mat,q_mat_bases)
+    
+end
+################################################################################
+
+
+@doc raw"""
+    Rank_polytope(q::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
+
+    Constructs the polytope using the constrains coming from the q-matroid rank function axioms.
+"""
+# Changes to old version:
+# there is no old version
+
+function Rank_polytope(q::Oscar.IntegerUnion, n::Oscar.IntegerUnion)
+    Field = GF(q)
+    
+    # Compute all spaces without the zero space
+    all_sp = [x for x in all_subspaces(Field,n) if rank(x)!=0]
+    ambient_dim = length(all_sp)
+
+    # Label  all spaces
+    labeled_all_sp = [[id,elm] for (id,elm) in enumerate(all_sp)]
+
+    # Inequalities of type R1
+    id = zeros(Int,ambient_dim,ambient_dim)
+    for i in range(1,ambient_dim)
+        for j in range(1,ambient_dim)
+            if i == j
+                id[i,j]=1
+            end
+        end
+    end
+    neg_id = -id
+    A = Array(vcat(neg_id,id))
+    b = Array(zeros(Int,ambient_dim))
+
+    for x in labeled_all_sp
+        sub_dim = rank(x[2])
+        b = vcat(b,Array([sub_dim]))
+    end
+
+    # Inequalities of type R2
+    for combi in combinations(labeled_all_sp,2)
+        zero_vec = zeros(Int,1,ambient_dim)
+        set_A = subspace_set(combi[1][2])
+        set_B = subspace_set(combi[2][2])
+        if issubset(set_A,set_B) && rank(combi[1][2]) + 1 == rank(combi[2][2]) 
+            zero_vec[combi[1][1]] = 1
+            zero_vec[combi[2][1]] = -1
+            A = Array(vcat(A,Array(zero_vec)))
+            b = Array(vcat(b,Array([0])))
+        end
+    end
+
+    # Inequalities of type R3
+    for combi in combinations(labeled_all_sp,2)
+        zero_vec = zeros(Int,1,ambient_dim)
+        set_A = subspace_set(combi[1][2])
+        set_B = subspace_set(combi[2][2])
+        if issubset(set_A,set_B) == false
+            inters = inters_vsV3(combi[1][2],combi[2][2]) 
+            sum  = sum_vsV2(combi[1][2],combi[2][2])
+            for x in labeled_all_sp
+                if x[2] == inters
+                    zero_vec[x[1]] = 1
+                end
+            end
+            for y in labeled_all_sp
+                if y[2] == sum
+                    zero_vec[y[1]] = 1
+                end
+            end      
+            zero_vec[combi[1][1]] = -1
+            zero_vec[combi[2][1]] = -1
+            A = Array(vcat(A,Array(zero_vec)))
+            b = Array(vcat(b,Array([0])))
+        end
+    end
+
+    return polyhedron((A,b))
     
 end
 ################################################################################
@@ -295,7 +469,7 @@ function Are_q_matroid_hyperplanes(Hyperps::AbstractVector{fpMatrix}, choice=not
                         if count == 0
                             are_hyperps = false
                             loop_breaker = true
-                            fail = "Axiom (H3)"
+                            fail = ["Axiom (H3)",combi]
                             break
                         end
                     end
