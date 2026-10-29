@@ -4,7 +4,7 @@ Database file
 
 List of representatives of all 65 different equivalence classes of spartial 2-spread of F_2^5: (Size, 2-space collection)
 
-	- This classification is according to "Partial spreads in PG(4,2) and flats in PG(9,2) external to the Grassmannian G_{1,4,2}" by Shaw, Ron, and 	Gordon, Neil A., and Maks, Johannes G.
+	- This classification is according to "Partial spreads in PG(4,2) and flats in PG(9,2) external to the Grassmannian G_{1,4,2}" by Shaw, Ron, and Gordon, Neil A., and Maks, Johannes G.
 
 	- The 2-spaces are the row spaces of the displayed matrices.
 
