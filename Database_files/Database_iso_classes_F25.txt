@@ -2,7 +2,7 @@ Database file
 ------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
-List of isomorphism classes of q-matroids on \mathbb{F}_2^5 in terms of their canonical representatives: (ID, #Bases, 0-1-Encoding)
+List of isomorphism classes of q-matroids of rank 2 on \mathbb{F}_2^5 in terms of their canonical representatives: (ID, #Bases, 0-1-Encoding)
 
 Canonical:	The representative of each isomorphism class whose encoding is the smallest one in the whole class,
 		in the sense Chapter 6, Section 4.1, of my thesis, where 0 < 1 and encodings are compared lexicographically.
