@@ -1,9 +1,5 @@
 # QMatroids
-***
 
+This repository contains various functionality for computations regarding q-matroids, as well as database files concerning their enumeration/classification.
 
-Here we have all sorts of functionality for Q-Matroids.
-
-A struct for a Q-Matroid, it's properties and other things.
-
-All is written in Julia-code using the Julia-Oscar Module.
+The entire code is written in Julia using the Julia package Oscar.
