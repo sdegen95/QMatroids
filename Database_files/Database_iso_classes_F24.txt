@@ -1,0 +1,42 @@
+Database file
+------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+List of isomorphism classes of q-matroids on \mathbb{F}_2^4 in terms of their canonical representatives: (ID, #Bases, 0-1-Encoding)
+
+Canonical:	The representative of each isomorphism class whose encoding is the smallest one in the whole class,
+		in the sense Chapter 6, Section 4.1, of my thesis, where 0 < 1 and encodings are compared lexicographically.
+
+
+0-1-Encoding: 	We totaly order the 2-spaces on \mathbb{F}_2^4 by their order of generation from the method "subspaces_fix_dim(GF(2),2,4)",
+		sorted afterwards by the method "Lex_compare_subs", i.e.,
+			qrank_subs = subspaces_fix_dim(GF(2),2,4); sort!(qrank_subs; lt = Lex_compare_subs).
+
+		Then, if some 2-space is basis of a given q-matroid we assign 1 at its corresponding position and otherwise 0.
+		The order and the encoding coresponds to the definitions in Chapter 6, Section 4.1, of my thesis.
+
+
+Decoding: 	You can decode the 0-1-Encoding using the method "Q_Matroid_base_dec(enc_bases:: Any, kspaces::Any)", where
+		"kspaces=sort!(qrank_subs; lt = Lex_compare_subs)"
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+Id: 1|  #Bases: 16|  Encoding: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1]
+
+Id: 2|  #Bases: 24|  Encoding: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]
+
+Id: 3|  #Bases: 28|  Encoding: [0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 4|  #Bases: 28|  Encoding: [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 5|  #Bases: 30|  Encoding: [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 6|  #Bases: 31|  Encoding: [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 7|  #Bases: 32|  Encoding: [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 8|  #Bases: 33|  Encoding: [0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 9|  #Bases: 34|  Encoding: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Id: 10|  #Bases: 35|  Encoding: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
